@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import EditResource from './pages/EditResource';
 
 // Resource management imports
 import ResourceDetails from './pages/ResourceDetails';
@@ -42,6 +43,7 @@ function App() {
           <Route path="/resources/:id" element={<ResourceDetails />} />
           <Route path="/create-resource" element={<CreateResources />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/edit-resource/:id" element={<EditResource />} />
         </Routes>
       </div>
     </Router>

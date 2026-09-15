@@ -1,31 +1,17 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const ResourceCard = ({ resource }) => {
-  const isOffer = resource.type === 'offer';
+  // 1. Initialize navigate here so the buttons know how to use it
+  const navigate = useNavigate();
 
   return (
-    <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ 
-          fontSize: '0.75rem', 
-          textTransform: 'uppercase', 
-          letterSpacing: '0.05em',
-          color: isOffer ? '#4ade80' : 'var(--accent-red)',
-          fontWeight: '700'
-        }}>
-          {resource.type} • {resource.category}
-        </span>
-        {resource.urgency === 'high' && (
-          <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--accent-red)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600' }}>
-            Urgent
-          </span>
-        )}
-      </div>
-
+    <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+      
       <div>
         <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{resource.title}</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: '1.5' }}>
-          {resource.description.substring(0, 80)}...
+          {/* Added optional chaining (?) to prevent crashes if description is missing */}
+          {resource.description?.substring(0, 80)}...
         </p>
       </div>
 
@@ -33,19 +19,27 @@ const ResourceCard = ({ resource }) => {
         <span style={{ color: 'var(--text-muted)' }}>📍 {resource.location}</span>
         <span style={{ fontWeight: '600' }}>Qty: {resource.quantity}</span>
       </div>
-      
-      <Link to={`/resources/${resource.id}`} style={{
-        marginTop: '0.5rem',
-        textAlign: 'center',
-        padding: '0.75rem',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        color: 'var(--text-main)',
-        borderRadius: '8px',
-        textDecoration: 'none',
-        transition: 'background-color 0.2s'
-      }}>
-        View Details
-      </Link>
+
+      {/* 2. Moved the action buttons cleanly to the bottom */}
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+        <button
+          onClick={() => navigate(`/resources/${resource.id}`)}
+          style={{
+            flex: 1, padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.1)',
+            color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'
+          }}>
+          View Details
+        </button>
+
+        <button
+          onClick={() => navigate(`/edit-resource/${resource.id}`)}
+          style={{
+            flex: 1, padding: '0.75rem', backgroundColor: 'var(--accent-red)',
+            color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'
+          }}>
+          Edit Post
+        </button>
+      </div>
     </div>
   );
 };
