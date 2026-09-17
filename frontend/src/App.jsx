@@ -44,6 +44,8 @@ function App() {
           <Route path="/create-resource" element={<CreateResources />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/edit-resource/:id" element={<EditResource />} />
+          <Route path="/profile/:userId" element={<Profile />} />
+          <Route element={<Profile />} path="/profile/:userId" /> 
         </Routes>
       </div>
     </Router>

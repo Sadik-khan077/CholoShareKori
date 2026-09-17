@@ -1,36 +1,70 @@
+import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import ResourceCard from '../components/ResourceCard';
+import api from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 
 const Sell = () => {
-  // Mock data: Items the logged-in user is selling
-  const mySellItems = [
-    { id: 1, type: 'Sell', title: 'Unused Textbooks', description: 'CSE first semester books.', category: 'education materials', quantity: 3, location: 'Dhanmondi', urgency: 'low', status: 'available' }
-  ];
+  const { user } = useContext(AuthContext);
+  const [userItems, setUserItems] = useState([]);
+
+  useEffect(() => {
+    const fetchMyItems = async () => {
+      try {
+        const response = await api.get('/resources');
+        // Filter: Only 'sell' items that DO belong to the logged-in user
+        const filtered = response.data.data.filter(
+          item => item.listing_type === 'sell' && Number(item.user_id) === Number(user?.id)
+        );
+        setUserItems(filtered);
+      } catch (error) {
+        console.error("Error fetching sell items:", error);
+      }
+    };
+    if (user) fetchMyItems();
+  }, [user]);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      
+      {/* Sticky Dashboard Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        flexWrap: 'wrap',
+        gap: '1rem',
+        padding: '1rem 0',
+        marginBottom: '1rem',
+        position: 'sticky', 
+        top: '73px', 
+        zIndex: 999,
+        backgroundColor: '#0f172a', 
+        boxShadow: '0 10px 15px -10px rgba(0,0,0,0.5)' 
+      }}>
         <div>
-          <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>My Selling Dashboard</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Manage the items you are currently selling.</p>
+          <h2 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>My Selling Dashboard</h2>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>Manage the items you are currently selling.</p>
         </div>
         
-        {/* Pass the type to the create page via URL state if needed, or link to a generic create page */}
         <Link to="/create-resource?type=sell" style={{
           backgroundColor: 'var(--accent-red)', color: 'white', padding: '0.75rem 1.5rem',
-          borderRadius: '8px', textDecoration: 'none', fontWeight: '600'
+          borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold'
         }}>
           + New Sell Post
         </Link>
       </div>
-      
+
       <div className="bento-grid" style={{ padding: 0 }}>
-        {mySellItems.length > 0 ? (
-          mySellItems.map(resource => <ResourceCard key={resource.id} resource={resource} />)
+        {userItems.length > 0 ? (
+          userItems.map(resource => (
+            <div key={resource.id}>
+              {/* The redundant "Posted By" text has been removed from here */}
+              <ResourceCard resource={resource} />
+            </div>
+          ))
         ) : (
-          <p style={{ color: 'var(--text-muted)', gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '16px' }}>
-            You haven't listed any items for sale yet.
-          </p>
+          <p style={{ color: 'var(--text-muted)' }}>You haven't listed any items for sale yet.</p>
         )}
       </div>
     </div>

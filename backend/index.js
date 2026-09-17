@@ -3,6 +3,8 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
+const userRoutes = require('./routes/userRoutes');
+
 require('dotenv').config();
 
 const app = express();
@@ -13,6 +15,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/resources', resourceRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 const db = mysql.createPool({
   uri: process.env.DATABASE_URL,
