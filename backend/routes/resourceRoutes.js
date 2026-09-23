@@ -81,8 +81,8 @@ router.post('/', protect, async (req, res) => {
 router.put('/:id', protect, async (req, res) => {
   try {
     const resourceId = req.params.id;
-    const userId = req.user.id; // From the auth middleware
-    const { title, location, quantity, description } = req.body;
+    const userId = req.user.id; 
+    const { title, location, quantity, description, price } = req.body;
 
     // First, verify the user actually owns the item they are trying to edit
     const [existing] = await db.query('SELECT user_id FROM resources WHERE id = ?', [resourceId]);
@@ -98,10 +98,10 @@ router.put('/:id', protect, async (req, res) => {
     // Update the database
     const updateQuery = `
       UPDATE resources 
-      SET title = ?, location = ?, quantity = ?, description = ? 
+      SET title = ?, location = ?, quantity = ?, description = ? , price = ?
       WHERE id = ?
     `;
-    await db.query(updateQuery, [title, location, quantity, description, resourceId]);
+    await db.query(updateQuery, [title, location, quantity, description, price, resourceId]);
 
     res.json({ success: true, message: 'Resource updated successfully' });
   } catch (error) {

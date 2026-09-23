@@ -11,6 +11,7 @@ const EditResource = () => {
   const [location, setLocation] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState('');
+  const [price, setPrice] = useState(1);
 
   useEffect(() => {
     const fetchResource = async () => {
@@ -22,6 +23,7 @@ const EditResource = () => {
         setLocation(item.location);
         setQuantity(item.quantity);
         setDescription(item.description);
+        setPrice(item.price);
       } catch (error) {
         console.error("Failed to fetch resource:", error);
       }
@@ -33,13 +35,14 @@ const EditResource = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const updatedData = { title, location, quantity, description };
+    const updatedData = { title, location, quantity, description, price };
+    
+    // TRIPWIRE 1: Pop up an alert on your screen before sending
+    alert(`REACT IS SENDING -> Price: ${updatedData.price}`);
+    console.log("Sending to backend:", updatedData);
     
     try {
-      // Sends the updated data to the backend
       await api.put(`/resources/${id}`, updatedData);
-      
-      // Sends you back to the previous page upon success
       navigate(-1);
     } catch (error) {
       console.error("Failed to update resource", error);
@@ -63,11 +66,19 @@ const EditResource = () => {
 
       <form className="bento-card" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {/* Title */}
-        <div>
+        {/* Title & Price*/}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.6fr', gap: '1rem' }}>
+          <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Title *</label>
           <input style={inputStyle} type="text" required
             value={title} onChange={e => setTitle(e.target.value)} />
+        </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Price *</label>
+            <input style={inputStyle} type="number" step="0.1" min="0" required
+              value={price} onChange={e => setPrice(parseInt(e.target.value) || 1)} />
+          </div>
         </div>
 
         {/* Location & Quantity */}
