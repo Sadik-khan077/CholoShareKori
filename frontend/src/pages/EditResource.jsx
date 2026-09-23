@@ -1,36 +1,50 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const EditResource = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  // Initialize with empty/default values
-  const [formData, setFormData] = useState({
-    title: '', category: '', quantity: 1, price: '', location: '', description: ''
-  });
 
-  // Mock fetching the existing data (TODO: Replace with actual API call)
+  // State declarations
+  const [title, setTitle] = useState('');
+  const [location, setLocation] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [description, setDescription] = useState('');
+
   useEffect(() => {
-    // api.get(`/resources/${id}`).then(res => setFormData(res.data))
-    console.log(`Fetching data for resource ${id}...`);
-    setFormData({
-      title: 'Power Drill Set', // Mock data
-      category: 'other',
-      quantity: 1,
-      price: '',
-      location: 'Dhanmondi',
-      description: 'Complete power drill set with multiple bits. Available to lend for up to 3 days....'
-    });
+    const fetchResource = async () => {
+      try {
+        const response = await api.get(`/resources/${id}`);
+        const item = response.data.data; 
+        
+        setTitle(item.title);
+        setLocation(item.location);
+        setQuantity(item.quantity);
+        setDescription(item.description);
+      } catch (error) {
+        console.error("Failed to fetch resource:", error);
+      }
+    };
+    
+    if (id) fetchResource();
   }, [id]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Updating resource:', formData);
-    // TODO: Connect to api.put(`/resources/${id}`, formData)
     
-    // Send user back to their profile or the previous page after saving
-    navigate(-1);
+    const updatedData = { title, location, quantity, description };
+    
+    try {
+      // Sends the updated data to the backend
+      await api.put(`/resources/${id}`, updatedData);
+      
+      // Sends you back to the previous page upon success
+      navigate(-1);
+    } catch (error) {
+      console.error("Failed to update resource", error);
+      alert("Failed to save changes. Please try again.");
+    }
   };
 
   const inputStyle = {
@@ -53,7 +67,7 @@ const EditResource = () => {
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Title *</label>
           <input style={inputStyle} type="text" required
-            value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+            value={title} onChange={e => setTitle(e.target.value)} />
         </div>
 
         {/* Location & Quantity */}
@@ -61,12 +75,12 @@ const EditResource = () => {
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Location *</label>
             <input style={inputStyle} type="text" required
-              value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+              value={location} onChange={e => setLocation(e.target.value)} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Quantity *</label>
             <input style={inputStyle} type="number" min="1" required
-              value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})} />
+              value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} />
           </div>
         </div>
 
@@ -74,7 +88,7 @@ const EditResource = () => {
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Description</label>
           <textarea style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
-            value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+            value={description} onChange={e => setDescription(e.target.value)} />
         </div>
 
         <button type="submit" style={{

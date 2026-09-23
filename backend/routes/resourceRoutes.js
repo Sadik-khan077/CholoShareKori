@@ -3,24 +3,36 @@ const router = express.Router();
 const db = require('../db');
 const { protect } = require('../middleware/authMiddleware');
 
-// ==========================================
-// GET ALL RESOURCES (For the 5 Pillars)
-// ==========================================
+// 1. GET ALL RESOURCES (Used by Marketplaces & Dashboards)
 router.get('/', async (req, res) => {
   try {
-    // We use a JOIN here to attach the user's name to the resource data!
+    // Perform a JOIN to get the user's name alongside the resource data
     const query = `
-      SELECT resources.*, users.name AS user_name 
-      FROM resources 
-      JOIN users ON resources.user_id = users.id
-      ORDER BY resources.created_at DESC
+      SELECT r.*, u.name AS user_name 
+      FROM resources r 
+      JOIN users u ON r.user_id = u.id 
+      ORDER BY r.created_at DESC
     `;
     const [resources] = await db.query(query);
-    
-    res.status(200).json({ success: true, data: resources });
+    res.json({ success: true, data: resources });
   } catch (error) {
-    console.error("Error fetching resources:", error);
-    res.status(500).json({ success: false, message: 'Failed to fetch resources' });
+    console.error("Fetch Resources Error:", error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// 2. GET SINGLE RESOURCE BY ID (Used by the Edit Post page)
+router.get('/:id', async (req, res) => {
+  try {
+    const resourceId = req.params.id;
+    const [resource] = await db.query('SELECT * FROM resources WHERE id = ?', [resourceId]);
+    
+    if (resource.length === 0) {
+      return res.status(404).json({ success: false, message: 'Resource not found' });
+    }
+    res.json({ success: true, data: resource[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -67,48 +79,34 @@ router.post('/', protect, async (req, res) => {
 // UPDATE A SPECIFIC RESOURCE
 // ==========================================
 router.put('/:id', protect, async (req, res) => {
-  const resourceId = req.params.id;
-  const userId = req.user.id; 
-  const { title, description, quantity, price, location, status } = req.body;
-
   try {
-    // 1. Verify the resource exists
-    const [results] = await db.query('SELECT * FROM resources WHERE id = ?', [resourceId]);
+    const resourceId = req.params.id;
+    const userId = req.user.id; // From the auth middleware
+    const { title, location, quantity, description } = req.body;
+
+    // First, verify the user actually owns the item they are trying to edit
+    const [existing] = await db.query('SELECT user_id FROM resources WHERE id = ?', [resourceId]);
     
-    if (results.length === 0) {
+    if (existing.length === 0) {
       return res.status(404).json({ success: false, message: 'Resource not found' });
     }
     
-    const resource = results[0];
-
-    // 2. Check ownership (Security check!)
-    if (resource.user_id !== userId) {
-      return res.status(403).json({ success: false, message: 'Not authorized to edit this resource' });
+    if (Number(existing[0].user_id) !== Number(userId)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to edit this post' });
     }
 
-    // 3. Update the resource
+    // Update the database
     const updateQuery = `
       UPDATE resources 
-      SET title = ?, description = ?, quantity = ?, price = ?, location = ?, status = ?
+      SET title = ?, location = ?, quantity = ?, description = ? 
       WHERE id = ?
     `;
-    
-    const values = [
-      title || resource.title,
-      description || resource.description,
-      quantity || resource.quantity,
-      price || resource.price,
-      location || resource.location,
-      status || resource.status,
-      resourceId
-    ];
+    await db.query(updateQuery, [title, location, quantity, description, resourceId]);
 
-    await db.query(updateQuery, values);
-    res.status(200).json({ success: true, message: 'Resource updated successfully' });
-
+    res.json({ success: true, message: 'Resource updated successfully' });
   } catch (error) {
-    console.error("Error updating resource:", error);
-    res.status(500).json({ success: false, message: 'Failed to update resource' });
+    console.error("Update Error:", error);
+    res.status(500).json({ success: false, message: 'Server error while updating' });
   }
 });
 

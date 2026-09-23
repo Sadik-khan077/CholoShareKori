@@ -91,23 +91,27 @@ const Buy = () => {
       </div>
       
       <div className="bento-grid" style={{ padding: 0 }}>
-        {processedResources.length > 0 ? (
-          processedResources.map(resource => (
-            <div key={resource.id} style={{ display: 'flex', flexDirection: 'column' }}>
-              <ResourceCard resource={resource} />
+        {/* Filter out 0 quantity items BEFORE checking length or mapping */}
+        {processedResources.filter(res => Number(res.quantity) > 0).length > 0 ? (
+          processedResources
+            .filter(resource => Number(resource.quantity) > 0)
+            .map(resource => (
+              <div key={resource.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                
+                <ResourceCard resource={resource} />
               
-              <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ 
-                  color: resource.urgency === 'high' ? '#ef4444' : resource.urgency === 'medium' ? '#f59e0b' : 'var(--text-muted)',
-                  fontWeight: 'bold', textTransform: 'capitalize'
-                }}>
-                  {resource.urgency} Urgency
-                </span>
-                <span>
-                  Posted by: <Link to={`/profile/${resource.user_id}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 'bold' }}>{resource.user_name || 'User'}</Link>
-                </span>
+                <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ 
+                    color: resource.urgency === 'high' ? '#ef4444' : resource.urgency === 'medium' ? '#f59e0b' : 'var(--text-muted)',
+                    fontWeight: 'bold', textTransform: 'capitalize'
+                  }}>
+                    {resource.urgency} Urgency
+                  </span>
+                  <span>
+                    Posted by: <Link to={`/profile/${resource.user_id}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 'bold' }}>{resource.user_name || 'User'}</Link>
+                  </span>
+                </div>
               </div>
-            </div>
           ))
         ) : (
           <p style={{ color: 'var(--text-muted)' }}>No items found matching your search criteria.</p>
