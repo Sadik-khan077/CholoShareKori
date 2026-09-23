@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Dark theme background to match your Navbar -->
+  <rect width="100" height="100" rx="22" fill="#0f172a" />
+  
+  <!-- Top Sharing Arrow (White) -->
+  <path d="M 25 40 L 75 40 L 58 23" 
+        stroke="#ffffff" stroke-width="8" 
+        stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        
+  <!-- Bottom Sharing Arrow (Accent Red) -->
+  <path d="M 75 60 L 25 60 L 42 77" 
+        stroke="#ef4444" stroke-width="8" 
+        stroke-linecap="round" stroke-linejoin="round" fill="none" />
+</svg>

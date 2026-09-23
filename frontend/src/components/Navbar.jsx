@@ -87,6 +87,9 @@ const Navbar = () => {
                 <Link to="/starred" onClick={() => setIsDropdownOpen(false)} style={dropdownItemStyle}>
                   Starred Persons
                 </Link>
+                <Link to="/history" onClick={() => setIsDropdownOpen(false)} style={dropdownItemStyle}>
+                  Transaction History
+                </Link>
                 <Link to="/settings" onClick={() => setIsDropdownOpen(false)} style={dropdownItemStyle}>
                   Settings
                 </Link>

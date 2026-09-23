@@ -18,6 +18,7 @@ import Buy from './pages/Buy';
 import Lend from './pages/Lend';
 import Borrow from './pages/Borrow';
 import Free from './pages/Free';
+import History from './pages/History';
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
           <Route path="/edit-resource/:id" element={<EditResource />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route element={<Profile />} path="/profile/:userId" /> 
+          <Route path="/history" element={<History />} />
         </Routes>
       </div>
     </Router>
