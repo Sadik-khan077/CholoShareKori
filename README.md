@@ -39,13 +39,16 @@ The application operates on a containerized, decoupled architecture, separating 
 
 ```mermaid
 flowchart LR
-    Client([Client Browser]) <-->|REST API / JSON| Vercel[Frontend: React.js]
+    Client(["Client Browser"]) <-->|"REST API / JSON"| Frontend["Frontend: React.js (Localhost)"]
     
-    subgraph Docker Environment
-        Vercel <-->|HTTP Requests| API[Backend: Node/Express API]
-        API <-->|SQL Queries| DB[(MySQL Database)]
+    subgraph Docker ["Docker Environment"]
+        API["Backend: Node/Express API"]
+        DB[("MySQL Database")]
     end
 
-    style Vercel fill:#0f172a,stroke:#61DAFB,stroke-width:2px,color:#fff
+    Frontend <-->|"HTTP Requests"| API
+    API <-->|"SQL Queries"| DB
+
+    style Frontend fill:#0f172a,stroke:#61DAFB,stroke-width:2px,color:#fff
     style API fill:#339933,stroke:#fff,stroke-width:2px,color:#fff
     style DB fill:#005C84,stroke:#fff,stroke-width:2px,color:#fff
