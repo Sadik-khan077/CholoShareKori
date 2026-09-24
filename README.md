@@ -53,9 +53,3 @@ flowchart LR
     style API fill:#339933,stroke:#fff,stroke-width:2px,color:#fff
     style DB fill:#005C84,stroke:#fff,stroke-width:2px,color:#fff
 
-** 2. Configure Environment Variables**
-Navigate to the `backend` directory and create a `.env` file based on the provided `.env.example`.
-```env
-DATABASE_URL=mysql://user:password@database:3306/mydb
-JWT_SECRET=your_jwt_secret_here
-PORT=5000
