@@ -1,10 +1,51 @@
-# 🤝 CholoShareKori **Community Resource Sharing Made Easy**      *A peer-to-peer campus and localized community marketplace designed to reduce waste, support peers, and seamlessly trade essentials.* ---
-About The Project
-System Architecture
-Feature Matrix
-Transaction Lifecycle
-Core API Reference
-Database Schema
-Tech Stack
-Local Development
---- ## 📖 About The Project **CholoShareKori** is a full-stack, transaction-based marketplace built to connect local communities and university campuses. Moving beyond standard e-commerce, it supports a comprehensive four-pillar resource sharing model: **Buy, Sell, Lend, and Borrow**. The platform is powered by a robust, state-driven transaction engine handling everything from immediate inventory reservation to dynamic JavaScript-based date math for calculating late-fee penalties on overdue borrowed items. --- ## 🏗️ System Architecture The application operates on a containerized, decoupled architecture, separating the client interface, API gateway, and relational data storage. ```mermaid flowchart LR Client([Client Browser]) <-->|REST API / JSON| Vercel[Frontend: React.js] subgraph Docker Environment Vercel <-->|HTTP Requests| API[Backend: Node/Express API] API <-->|SQL Queries| DB[(MySQL Database)] end style Vercel fill:#000,stroke:#fff,stroke-width:2px,color:#fff style API fill:#339933,stroke:#fff,stroke-width:2px,color:#fff style DB fill:#005C84,stroke:#fff,stroke-width:2px,color:#fff ``` --- ## ✨ Feature Matrix | Feature Module | Description | Primary Benefit | | :--- | :--- | :--- | | **Unified Marketplace** | Consolidates items for sale, for free, or for short-term lending under a single platform with category and urgency filtering. | Reduces app-switching and centralizes community resources. | | **Dynamic Late-Fee Engine** | Actively tracks `duration_days` and `created_at` timestamps to calculate daily penalty fees for overdue items on the fly. | Enforces borrowing policies without heavy server-side CRON jobs. | | **Smart Inventory Locks** | Deducts item quantity immediately upon a request, automatically restoring it if an order is rejected or an item is returned. | Prevents double-booking and stock overlaps. | | **Dual-Dashboard System** | Distinct hubs for managing **Incoming Orders** and **Incoming Requests**, complete with interactive approval workflows. | Gives providers complete control over who receives their items. | | **Modern UI/UX** | Dark-mode interface utilizing Bento grid card arrangements, geometric sans-serif typography, and striking red accent highlights. | Delivers a highly readable, contemporary aesthetic that highlights actionable items. | --- ## 🔄 Transaction Lifecycle Every resource request follows a strict state-machine workflow to ensure data integrity between the provider and requester. ```mermaid sequenceDiagram participant B as Borrower/Buyer participant API as Node.js Backend participant DB as MySQL Database participant P as Provider/Seller B->>API: POST /transactions (Request Item) API->>DB: Deduct Quantity (Reserve Inventory) API->>DB: Insert Transaction (Status: 'pending') API-->>B: 201 Created P->>API: GET /transactions/incoming API-->>P: Return 'pending' requests P->>API: PUT /transactions/:id {status: 'approved'} API->>DB: Update Status to 'approved' API-->>P: 200 OK Note over B,P: Item is currently being used/borrowed P->>API: PUT /transactions/:id {status: 'completed'} API->>DB: Update Status to 'completed' API->>DB: Add Quantity (Restore Inventory) API-->>P: 200 OK ``` --- ## 🔌 Core API Reference The backend exposes protected RESTful endpoints to manage the marketplace logic. | Method | Endpoint | Description | Auth Required | | :--- | :--- | :--- | :---: | | `GET` | `/api/resources` | Fetches available marketplace items with search parameters. | Yes | | `POST` | `/api/transactions` | Creates a new order/borrow request and deducts stock. | Yes | | `GET` | `/api/transactions/incoming` | Retrieves pending/approved requests for the provider. | Yes | | `GET` | `/api/transactions/outgoing` | Retrieves active requests made by the current user. | Yes | | `GET` | `/api/transactions/history` | Fetches a log of all `completed` transactions. | Yes | | `PUT` | `/api/transactions/:id` | Updates transaction status (`approved`, `rejected`, `completed`). | Yes | --- ## 🗄️ Database Schema The highly relational MySQL schema enforces data normalization across users, locations, inventory, and ledger history. ```mermaid erDiagram LOCATIONS ||--o{ USERS : "has residents" LOCATIONS ||--o{ RESOURCES : "hosts items" CATEGORIES ||--o{ RESOURCES : "categorizes" USERS ||--o{ RESOURCES : "creates" RESOURCES ||--o{ TRANSACTIONS : "fulfills" USERS ||--o{ TRANSACTIONS : "requests" USERS ||--o{ TRANSACTIONS : "provides" LOCATIONS { INT id PK VARCHAR name UK ENUM type BOOLEAN is_active } CATEGORIES { INT id PK VARCHAR name UK VARCHAR slug UK BOOLEAN is_active } USERS { INT id PK VARCHAR name VARCHAR email UK VARCHAR phone VARCHAR password VARCHAR registration_no UK VARCHAR location FK ENUM status } RESOURCES { INT id PK INT user_id FK ENUM listing_type VARCHAR title TEXT description VARCHAR category FK VARCHAR location FK INT quantity DECIMAL price ENUM urgency ENUM status TIMESTAMP created_at } TRANSACTIONS { INT id PK INT resource_id FK INT requester_id FK INT provider_id FK VARCHAR transaction_type INT quantity VARCHAR payment_method INT duration_days ENUM status TIMESTAMP created_at } ``` --- ## 🛠️ Tech Stack | Domain | Technologies Used | | :--- | :--- | | **Frontend** | React.js, React Router DOM, Context API | | **Backend** | Node.js, Express.js, JWT Authentication | | **Database** | MySQL2 | | **CI/CD & Deployment**| Docker, Docker Compose, GitHub Actions, Vercel | --- ## 🚀 Local Development The project is fully containerized for a frictionless local setup. **1. Clone the repository** ```bash git clone https://github.com/yourusername/CholoShareKori.git cd CholoShareKori ``` **2. Configure Environment Variables** Create a `.env` file in the backend directory based on `.env.example`. ```env DB_HOST=database DB_USER=root DB_PASSWORD=your_password DB_NAME=mydb JWT_SECRET=your_jwt_secret ``` **3. Spin up the Containers** Use Docker Compose to build and start the database, backend, and frontend simultaneously. ```bash sudo docker compose up -d --build ``` **4. Access the App** * **Frontend:** `http://localhost:3000` * **Backend API:** `
+# 🤝 CholoShareKori
+
+> **Community Resource Sharing Made Easy**
+
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+
+*A peer-to-peer campus and localized community marketplace designed to reduce waste, support peers, and seamlessly trade essentials.*
+
+---
+
+## 📖 Table of Contents
+
+* [About The Project](#-about-the-project)
+* [System Architecture](#-system-architecture)
+* [Feature Matrix](#-feature-matrix)
+* [Transaction Lifecycle](#-transaction-lifecycle)
+* [Core API Reference](#-core-api-reference)
+* [Database Schema](#-database-schema)
+* [Tech Stack](#-tech-stack)
+* [Local Development](#-local-development)
+
+---
+
+## 📖 About The Project
+
+**CholoShareKori** is a full-stack, transaction-based marketplace built to connect local communities and university campuses. Moving beyond standard e-commerce, it supports a comprehensive four-pillar resource sharing model: **Buy, Sell, Lend, and Borrow**. 
+
+The platform is powered by a robust, state-driven transaction engine handling everything from immediate inventory reservation to dynamic JavaScript-based date math for calculating late-fee penalties on overdue borrowed items.
+
+---
+
+## 🏗️ System Architecture
+
+The application operates on a containerized, decoupled architecture, separating the client interface, API gateway, and relational data storage.
+
+```mermaid
+flowchart LR
+    Client([Client Browser]) <-->|REST API / JSON| Vercel[Frontend: React.js]
+    
+    subgraph Docker Environment
+        Vercel <-->|HTTP Requests| API[Backend: Node/Express API]
+        API <-->|SQL Queries| DB[(MySQL Database)]
+    end
+
+    style Vercel fill:#0f172a,stroke:#61DAFB,stroke-width:2px,color:#fff
+    style API fill:#339933,stroke:#fff,stroke-width:2px,color:#fff
+    style DB fill:#005C84,stroke:#fff,stroke-width:2px,color:#fff
