@@ -22,8 +22,12 @@ const Lend = () => {
 
       try {
         const resRequests = await api.get('/transactions/incoming');
-        // Hide completed/returned items from the active queue
-        setIncomingRequests(resRequests.data.data.filter(tx => tx.transaction_type === 'borrow_request' && tx.status !== 'completed' && tx.status !== 'rejected'));
+        // BROADENED FILTER: Catch everything that isn't a direct "order"
+        setIncomingRequests(resRequests.data.data.filter(tx => 
+          tx.transaction_type !== 'order' && 
+          tx.status !== 'completed' && 
+          tx.status !== 'rejected'
+        ));
       } catch (error) {
         console.error("Error fetching requests:", error);
       }
@@ -60,7 +64,7 @@ const Lend = () => {
         <Link to="/create-resource?type=lend" style={{ backgroundColor: 'var(--accent-red)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' }}>+ New Lend Post</Link>
       </div>
 
-      {/* SECTION 1: INCOMING REQUESTS (Moved to top) */}
+      {/* SECTION 1: INCOMING REQUESTS */}
       <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Incoming Borrow Requests</h3>
       <div className="bento-grid" style={{ padding: 0, marginBottom: '3rem' }}>
         {incomingRequests.length > 0 ? incomingRequests.map(req => (
@@ -68,13 +72,37 @@ const Lend = () => {
             key={req.id} 
             onClick={() => setSelectedRequest(req)}
             className="bento-card"
-            style={{ cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid rgba(255,255,255,0.05)' }}
+            style={{ 
+              cursor: 'pointer', 
+              transition: 'transform 0.2s', 
+              border: req.days_late > 0 ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.05)',
+              backgroundColor: req.days_late > 0 ? 'rgba(239, 68, 68, 0.05)' : 'transparent'
+            }}
             onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
             onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{req.title}</h4>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Borrower: {req.requester_name}</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0' }}>Status: <span style={{ color: req.status === 'approved' ? '#10b981' : '#f59e0b', textTransform: 'capitalize' }}>{req.status}</span></p>
+            
+            {req.days_late > 0 ? (
+              <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>
+                <p style={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: 'bold', margin: 0 }}>
+                  ⚠️ OVERDUE BY {req.days_late} DAYS
+                </p>
+                <p style={{ color: '#ef4444', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
+                  Late Fee: ৳ {Number(req.late_fee).toFixed(2)}
+                </p>
+              </div>
+            ) : req.due_date && req.status === 'approved' ? (
+              <p style={{ color: '#10b981', fontSize: '0.9rem', margin: '0.5rem 0' }}>
+                Due Date: {new Date(req.due_date).toLocaleDateString()}
+              </p>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0' }}>
+                Status: <span style={{ color: req.status === 'approved' ? '#10b981' : '#f59e0b', textTransform: 'capitalize' }}>{req.status}</span>
+              </p>
+            )}
+
             <p style={{ color: 'var(--accent-red)', fontWeight: 'bold', marginTop: '1rem' }}>Click to view details</p>
           </div>
         )) : <p style={{ color: 'var(--text-muted)' }}>No active borrow requests right now.</p>}
@@ -82,7 +110,7 @@ const Lend = () => {
 
       <hr style={{ borderColor: 'rgba(255,255,255,0.05)', marginBottom: '2rem' }} />
 
-      {/* SECTION 2: ACTIVE LISTINGS (Moved to bottom) */}
+      {/* SECTION 2: ACTIVE LISTINGS */}
       <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Lendable Items</h3>
       <div className="bento-grid" style={{ padding: 0, marginBottom: '3rem' }}>
         {userItems.length > 0 ? userItems.map(resource => <div key={resource.id}><ResourceCard resource={resource} /></div>) : <p style={{ color: 'var(--text-muted)' }}>You haven't listed any items to lend yet.</p>}
@@ -98,9 +126,23 @@ const Lend = () => {
               <div><strong style={{ color: 'var(--text-muted)' }}>Borrower:</strong><br/>{selectedRequest.requester_name}</div>
               <div><strong style={{ color: 'var(--text-muted)' }}>Contact:</strong><br/>{selectedRequest.requester_phone}</div>
               <div><strong style={{ color: 'var(--text-muted)' }}>Item:</strong><br/>{selectedRequest.title}</div>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Duration:</strong><br/>{selectedRequest.duration_days} Days</div>
               <div><strong style={{ color: 'var(--text-muted)' }}>Pickup Location:</strong><br/>{selectedRequest.location}</div>
+              
+              {/* RESTORED: Duration Days */}
+              <div><strong style={{ color: 'var(--text-muted)' }}>Duration:</strong><br/>{selectedRequest.duration_days ? `${selectedRequest.duration_days} Days` : 'N/A'}</div>
+              
+              {selectedRequest.status === 'approved' && (
+                <div><strong style={{ color: 'var(--text-muted)' }}>Due Date:</strong><br/>{new Date(selectedRequest.due_date).toLocaleDateString()}</div>
+              )}
+              
               <div><strong style={{ color: 'var(--text-muted)' }}>Rental Fee:</strong><br/><span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>{selectedRequest.price > 0 ? `৳ ${selectedRequest.price}` : 'Free'}</span></div>
+              
+              {selectedRequest.days_late > 0 && (
+                <div style={{ gridColumn: '1 / -1', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem', borderRadius: '4px' }}>
+                  <strong style={{ color: '#ef4444' }}>⚠️ Late Penalty Accrued:</strong><br/>
+                  <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1.1rem' }}>৳ {Number(selectedRequest.late_fee).toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '1rem' }}>

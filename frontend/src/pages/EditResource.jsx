@@ -6,12 +6,15 @@ const EditResource = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // State declarations
+  // Form State
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState(1);
+  
+  // Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     const fetchResource = async () => {
@@ -32,14 +35,15 @@ const EditResource = () => {
     if (id) fetchResource();
   }, [id]);
 
-  const handleSubmit = async (e) => {
+  // Triggers the modal instead of submitting immediately
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
+    setShowConfirmModal(true); 
+  };
+
+  // The actual function that fires when "Confirm" is clicked
+  const confirmUpdate = async () => {
     const updatedData = { title, location, quantity, description, price };
-    
-    // TRIPWIRE 1: Pop up an alert on your screen before sending
-    alert(`REACT IS SENDING -> Price: ${updatedData.price}`);
-    console.log("Sending to backend:", updatedData);
     
     try {
       await api.put(`/resources/${id}`, updatedData);
@@ -47,6 +51,8 @@ const EditResource = () => {
     } catch (error) {
       console.error("Failed to update resource", error);
       alert("Failed to save changes. Please try again.");
+    } finally {
+      setShowConfirmModal(false);
     }
   };
 
@@ -67,17 +73,16 @@ const EditResource = () => {
       <form className="bento-card" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {/* Title & Price*/}
-
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.6fr', gap: '1rem' }}>
           <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Title *</label>
-          <input style={inputStyle} type="text" required
-            value={title} onChange={e => setTitle(e.target.value)} />
-        </div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Title *</label>
+            <input style={inputStyle} type="text" required
+              value={title} onChange={e => setTitle(e.target.value)} />
+          </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Price *</label>
-            <input style={inputStyle} type="number" step="0.1" min="0" required
-              value={price} onChange={e => setPrice(parseInt(e.target.value) || 1)} />
+            <input style={inputStyle} type="number" step="0.01" min="0" required
+              value={price} onChange={e => setPrice(Number(e.target.value))} />
           </div>
         </div>
 
@@ -109,6 +114,31 @@ const EditResource = () => {
           Save Changes
         </button>
       </form>
+
+      {/* CONFIRMATION MODAL */}
+      {showConfirmModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
+          <div className="bento-card" style={{ width: '100%', maxWidth: '400px', backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', padding: '2rem' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text-main)' }}>Confirm Update</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Are you sure you want to save these changes?</p>
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setShowConfirmModal(false)} 
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmUpdate} 
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', backgroundColor: 'var(--accent-red)', color: 'white', flex: 1 }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

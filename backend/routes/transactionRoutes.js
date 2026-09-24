@@ -3,6 +3,9 @@ const router = express.Router();
 const db = require('../db');
 const { protect } = require('../middleware/authMiddleware');
 
+// Define your penalty rate here (e.g., 50 BDT per day)
+const DAILY_LATE_FEE = 20; 
+
 // 1. CREATE TRANSACTION & DEDUCT INVENTORY
 router.post('/', protect, async (req, res) => {
   try {
@@ -20,7 +23,7 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Not enough quantity available.' });
     }
 
-    const initialStatus = transaction_type === 'order' ? 'approved' : 'pending';
+    const initialStatus = 'pending';
 
     // Deduct quantity immediately to reserve the item
     await db.query('UPDATE resources SET quantity = quantity - ? WHERE id = ?', [reqQty, resource_id]);
@@ -45,27 +48,79 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// 2. GET INCOMING REQUESTS
+// 2. GET INCOMING REQUESTS (For the Lender/Seller Dashboard)
 router.get('/incoming', protect, async (req, res) => {
   try {
     const providerId = req.user.id;
+    
+    // Fixed: Using t.created_at instead of the missing t.updated_at column
     const query = `
       SELECT t.*, r.title, r.listing_type, r.price, r.location, 
-             u.name as requester_name, u.phone as requester_phone 
+             u.name as requester_name, u.phone as requester_phone,
+             
+             IF(t.duration_days IS NOT NULL, DATE_ADD(t.created_at, INTERVAL t.duration_days DAY), NULL) AS due_date,
+             
+             IF(t.transaction_type = 'borrow_request' AND t.status = 'approved' AND t.duration_days IS NOT NULL, 
+                GREATEST(0, DATEDIFF(NOW(), DATE_ADD(t.created_at, INTERVAL t.duration_days DAY))), 
+                0
+             ) AS days_late,
+             
+             IF(t.transaction_type = 'borrow_request' AND t.status = 'approved' AND t.duration_days IS NOT NULL, 
+                GREATEST(0, DATEDIFF(NOW(), DATE_ADD(t.created_at, INTERVAL t.duration_days DAY))) * ?, 
+                0
+             ) AS late_fee
+
       FROM transactions t
       JOIN resources r ON t.resource_id = r.id
       JOIN users u ON t.requester_id = u.id
       WHERE t.provider_id = ?
       ORDER BY t.created_at DESC
     `;
-    const [requests] = await db.query(query, [providerId]);
+    const [requests] = await db.query(query, [DAILY_LATE_FEE, providerId]);
     res.json({ success: true, data: requests });
   } catch (error) {
+    console.error("Incoming Fetch Error:", error);
     res.status(500).json({ success: false, message: 'Failed to fetch incoming requests.' });
   }
 });
 
-// 3. GET COMPLETED TRANSACTION HISTORY
+// 3. GET OUTGOING REQUESTS (For the Borrower/Buyer Dashboard)
+router.get('/outgoing', protect, async (req, res) => {
+  try {
+    const requesterId = req.user.id;
+    
+    // Fixed: Using t.created_at instead of the missing t.updated_at column
+    const query = `
+      SELECT t.*, r.title, r.listing_type, r.price, r.location, 
+             p.name as provider_name, p.phone as provider_phone,
+             
+             IF(t.duration_days IS NOT NULL, DATE_ADD(t.created_at, INTERVAL t.duration_days DAY), NULL) AS due_date,
+             
+             IF(t.transaction_type = 'borrow_request' AND t.status = 'approved' AND t.duration_days IS NOT NULL, 
+                GREATEST(0, DATEDIFF(NOW(), DATE_ADD(t.created_at, INTERVAL t.duration_days DAY))), 
+                0
+             ) AS days_late,
+             
+             IF(t.transaction_type = 'borrow_request' AND t.status = 'approved' AND t.duration_days IS NOT NULL, 
+                GREATEST(0, DATEDIFF(NOW(), DATE_ADD(t.created_at, INTERVAL t.duration_days DAY))) * ?, 
+                0
+             ) AS late_fee
+
+      FROM transactions t
+      JOIN resources r ON t.resource_id = r.id
+      JOIN users p ON t.provider_id = p.id
+      WHERE t.requester_id = ?
+      ORDER BY t.created_at DESC
+    `;
+    const [requests] = await db.query(query, [DAILY_LATE_FEE, requesterId]);
+    res.json({ success: true, data: requests });
+  } catch (error) {
+    console.error("Outgoing Fetch Error:", error);
+    res.status(500).json({ success: false, message: 'Failed to fetch outgoing requests.' });
+  }
+});
+
+// 4. GET COMPLETED TRANSACTION HISTORY
 router.get('/history', protect, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -87,7 +142,7 @@ router.get('/history', protect, async (req, res) => {
   }
 });
 
-// 4. UPDATE STATUS & RESTORE INVENTORY IF REJECTED/RETURNED
+// 5. UPDATE STATUS & RESTORE INVENTORY IF REJECTED/RETURNED
 router.put('/:id', protect, async (req, res) => {
   try {
     const { status } = req.body;
