@@ -1,54 +1,481 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ==========================================================================
+   CHOLOSHAREKORI (চলো শেয়ার করি) — HUMAN CRAFT DESIGN SYSTEM
+   Theme: Campus Baked Terracotta, Warm Linen & Botanical Living Green
+   No generic AI cold blues. Authentic human warmth, editorial craft & tactile depth.
+   ========================================================================== */
 
-:root {
-  --bg-dark: #0f172a;
-  --card-bg: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent-red: #ef4444;
-  --accent-red-hover: #dc2626;
-  --font-geometric: 'Inter', system-ui, sans-serif;
+:root,
+[data-theme="light"],
+[data-theme="warm-ivory"] {
+  /* Canvas & Warm Tactile Surfaces */
+  --bg-canvas: #FAF7F2;                 /* Natural warm ivory parchment / handmade paper */
+  --bg-surface: #FFFFFF;                /* Crisp artisan white card surface */
+  --bg-surface-elevated: #FFFFFF;       /* Modals, sheets & popovers */
+  --bg-surface-subtle: #F3EFE6;         /* Recessed wells, filter pill bars, search bases */
+  --bg-card: #FFFFFF;                   /* Card surface */
+  --bg-card-hover: #FFFFFF;
+  --bg-input: #FFFFFF;                  /* Input surfaces */
+  --bg-badge-neutral: #EFEAE1;
+
+  /* Human Typography Palette — High Contrast, Warm Ink */
+  --text-main: #1C1917;                 /* Deep Roasted Espresso Ink (Contrast 16:1 WCAG AAA) */
+  --text-secondary: #44403C;            /* Warm Charcoal Stone (Contrast 9.5:1) */
+  --text-muted: #78716C;                /* Warm Pebblestone (Contrast 4.8:1) */
+  --text-subtle: #A8A29E;               /* Warm Sandstone */
+
+  /* Emotional Human Accents — Baked Terracotta, Sunlit Ochre & Campus Green */
+  --accent-primary: #D9532F;            /* Baked Terracotta / JU Red Brick Heritage */
+  --accent-primary-hover: #BF4322;
+  --accent-primary-subtle: rgba(217, 83, 47, 0.08);
+  --accent-primary-border: rgba(217, 83, 47, 0.22);
+
+  --accent-amber: #D97706;              /* Sunlit Ochre / Bottola Afternoon Light */
+  --accent-amber-subtle: #FEF3C7;
+  --accent-amber-text: #92400E;
+
+  --accent-emerald: #257A54;            /* Botanical Campus Forest / Eco Reuse */
+  --accent-emerald-subtle: #E8F5EE;
+  --accent-emerald-text: #166534;
+
+  --accent-rose: #C83B4C;               /* Pomegranate / Warm Alert */
+  --accent-rose-subtle: #FEE2E2;
+  --accent-rose-text: #991B1B;
+
+  --accent-plum: #704264;               /* Jamun / Heritage Academic */
+  --accent-plum-subtle: #F5EEF4;
+  --accent-plum-text: #4C2644;
+
+  --accent-sky: #2B7A9E;                /* Waterlily Lake Teal */
+  --accent-sky-subtle: #E6F3F8;
+  --accent-sky-text: #164E63;
+
+  /* Gradients & Tactile Shadows */
+  --accent-gradient: linear-gradient(135deg, #D9532F 0%, #E26845 52%, #C44322 100%);
+  --accent-gradient-subtle: linear-gradient(135deg, rgba(217, 83, 47, 0.09) 0%, rgba(226, 104, 69, 0.04) 100%);
+  --accent-glow: 0 4px 18px rgba(217, 83, 47, 0.24);
+
+  /* Warm Hairline Borders */
+  --border-subtle: rgba(68, 50, 35, 0.09);
+  --border-hover: rgba(217, 83, 47, 0.45);
+  --border-glow: rgba(217, 83, 47, 0.28);
+  --border-focus: #D9532F;
+
+  /* Natural Ambient Diffusion Shadows (Not Synthetic AI Neon) */
+  --shadow-card: 0 2px 8px -1px rgba(60, 45, 30, 0.06), 0 1px 3px rgba(60, 45, 30, 0.04);
+  --shadow-hover: 0 14px 30px -4px rgba(60, 45, 30, 0.12), 0 3px 8px -1px rgba(60, 45, 30, 0.05);
+  --shadow-modal: 0 24px 60px -12px rgba(44, 38, 30, 0.28);
+
+  /* Radius & Scale */
+  --radius-xs: 5px;
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+
+  /* Human Typography Stacks */
+  --font-display: 'Fraunces', 'Plus Jakarta Sans', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-bangla: 'Hind Siliguri', 'Kalpurush', sans-serif;
 }
 
+/* --------------------------------------------------------------------------
+   DARK THEME: WARM ROASTED ESPRESSO & EMBER (STUDY IN DORM AT NIGHT)
+   Deep, cozy, organic warmth — 0% cold AI blue!
+   -------------------------------------------------------------------------- */
+[data-theme="dark"],
+[data-theme="warm-espresso"] {
+  --bg-canvas: #141210;                 /* Roasted espresso bean & warm peat */
+  --bg-surface: #1C1916;                /* Deep warm peat wood */
+  --bg-surface-elevated: #24201C;       /* Warm elevated charcoal */
+  --bg-surface-subtle: #191614;         /* Subtle warm well */
+  --bg-card: rgba(28, 25, 22, 0.94);
+  --bg-card-hover: rgba(36, 32, 28, 0.98);
+  --bg-input: #181513;
+  --bg-badge-neutral: #282420;
+
+  --text-main: #FDFBF7;                 /* Warm Ivory Cream */
+  --text-secondary: #D7CEBE;            /* Warm Oatmeal */
+  --text-muted: #A39786;                /* Warm Peat Ash */
+  --text-subtle: #73695B;
+
+  --accent-primary: #E05C38;            /* Glowing Hearth Terracotta */
+  --accent-primary-hover: #EE6B47;
+  --accent-primary-subtle: rgba(224, 92, 56, 0.15);
+  --accent-primary-border: rgba(224, 92, 56, 0.35);
+
+  --accent-amber: #E59E37;
+  --accent-amber-subtle: rgba(229, 158, 55, 0.14);
+  --accent-amber-text: #FCD34D;
+
+  --accent-emerald: #349468;
+  --accent-emerald-subtle: rgba(52, 148, 104, 0.14);
+  --accent-emerald-text: #86EFAC;
+
+  --accent-rose: #E55767;
+  --accent-rose-subtle: rgba(229, 87, 103, 0.14);
+  --accent-rose-text: #FCA5A5;
+
+  --accent-plum: #A36B98;
+  --accent-plum-subtle: rgba(163, 107, 152, 0.15);
+  --accent-plum-text: #E9D5FF;
+
+  --accent-sky: #4CA4C8;
+  --accent-sky-subtle: rgba(76, 164, 200, 0.14);
+  --accent-sky-text: #BAE6FD;
+
+  --accent-gradient: linear-gradient(135deg, #E05C38 0%, #EB7452 50%, #D24B27 100%);
+  --accent-gradient-subtle: linear-gradient(135deg, rgba(224, 92, 56, 0.16) 0%, rgba(235, 116, 82, 0.08) 100%);
+  --accent-glow: 0 4px 22px rgba(224, 92, 56, 0.32);
+
+  --border-subtle: rgba(255, 245, 235, 0.09);
+  --border-hover: rgba(224, 92, 56, 0.45);
+  --border-glow: rgba(224, 92, 56, 0.35);
+  --border-focus: #E05C38;
+
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-hover: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 245, 235, 0.12);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.85);
+}
+
+/* Base Reset & Natural Atmosphere */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body {
-  background-color: var(--bg-dark);
+html, body {
+  background-color: var(--bg-canvas);
+  background-image: 
+    radial-gradient(ellipse at 50% -4%, rgba(217, 83, 47, 0.06) 0%, transparent 52%),
+    radial-gradient(ellipse at 88% 18%, rgba(217, 119, 6, 0.04) 0%, transparent 42%),
+    radial-gradient(ellipse at 12% 75%, rgba(37, 122, 84, 0.035) 0%, transparent 48%);
+  background-attachment: fixed;
   color: var(--text-main);
-  font-family: var(--font-geometric);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-  overflow-y: scroll;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  line-height: 1.55;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Bento Grid Utility Classes */
+[data-theme="dark"] body {
+  background-color: var(--bg-canvas);
+  background-image: 
+    radial-gradient(ellipse at 50% -4%, rgba(224, 92, 56, 0.08) 0%, transparent 52%),
+    radial-gradient(ellipse at 88% 18%, rgba(229, 158, 55, 0.05) 0%, transparent 42%);
+}
+
+/* Headings with Human Editorial Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+  color: var(--text-main);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* App Container */
+.app-container {
+  min-height: calc(100vh - 76px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bento / Product Grid */
 .bento-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
   gap: 1.5rem;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 
+@media (max-width: 640px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
+  }
+}
+
+/* Warm Tactile Cards */
 .bento-card {
-  background-color: var(--card-bg);
-  border-radius: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.22s ease;
+  position: relative;
 }
 
 .bento-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15); /* Red accent glow */
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
 }
 
-input:-webkit-autofill,
-input:-webkit-autofill:focus {
-    transition: background-color 600000s 0s, color 600000s 0s;
+/* Tactile Human Buttons */
+.btn-primary {
+  background: var(--accent-gradient);
+  color: #ffffff;
+  padding: 0.72rem 1.45rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(217, 83, 47, 0.28);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 8px 22px rgba(217, 83, 47, 0.42);
+  transform: translateY(-1.5px);
+  filter: brightness(1.04);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-surface-subtle);
+  color: var(--text-main);
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-hover);
+  color: var(--text-main);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-ghost:hover {
+  color: var(--accent-primary);
+  background: var(--accent-primary-subtle);
+}
+
+/* Warm Tactile Form Controls */
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1.05rem;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.93rem;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(217, 83, 47, 0.16);
+  background: var(--bg-surface);
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+  color: var(--text-subtle);
+}
+
+/* Human Pillar Badges (Warm Organic Colors) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: var(--radius-xs);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-sell {
+  background: var(--accent-rose-subtle);
+  color: var(--accent-rose-text);
+  border: 1px solid rgba(200, 59, 76, 0.22);
+}
+
+.badge-buy {
+  background: var(--accent-sky-subtle);
+  color: var(--accent-sky-text);
+  border: 1px solid rgba(43, 122, 158, 0.22);
+}
+
+.badge-lend {
+  background: var(--accent-plum-subtle);
+  color: var(--accent-plum-text);
+  border: 1px solid rgba(112, 66, 100, 0.22);
+}
+
+.badge-borrow {
+  background: var(--accent-amber-subtle);
+  color: var(--accent-amber-text);
+  border: 1px solid rgba(217, 119, 6, 0.22);
+}
+
+.badge-free {
+  background: var(--accent-emerald-subtle);
+  color: var(--accent-emerald-text);
+  border: 1px solid rgba(37, 122, 84, 0.25);
+}
+
+/* Organic Pulse Indicator */
+@keyframes warmPulseRing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(217, 83, 47, 0.55);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(217, 83, 47, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(217, 83, 47, 0);
+  }
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: var(--accent-primary);
+  animation: warmPulseRing 2.2s infinite;
+}
+
+.pulse-dot.critical {
+  background-color: #DC2626;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.45);
+}
+
+.pulse-dot.high {
+  background-color: #EA580C;
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.45);
+}
+
+.pulse-dot.medium {
+  background-color: #D97706;
+}
+
+/* Modal Dialog */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1.5rem;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.modal-content {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  width: 100%;
+  max-width: 530px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2.2rem;
+  position: relative;
+  animation: modalScale 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Campus Pulse Ticker (Warm Parchment & Terracotta) */
+.campus-pulse-bar {
+  background: var(--bg-surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.5rem 1rem;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Custom Tactile Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.35);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.55);
 }

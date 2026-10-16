@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import ResourceCard from '../components/ResourceCard';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import { 
+  IconShoppingBag, 
+  IconPlus, 
+  IconX 
+} from '../components/Icons';
 
 const Sell = () => {
   const { user } = useContext(AuthContext);
@@ -13,7 +18,6 @@ const Sell = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-      
       try {
         const resItems = await api.get('/resources');
         setUserItems(resItems.data.data.filter(item => item.listing_type === 'sell' && Number(item.user_id) === Number(user?.id)));
@@ -22,15 +26,14 @@ const Sell = () => {
       }
 
       try {
-        const resRequests = await api.get('/transactions/incoming');
-        // BROADENED FILTER: Catches anything that isn't a borrow request
-        setIncomingOrders(resRequests.data.data.filter(tx => 
-          tx.transaction_type !== 'borrow_request' && 
+        const resOrders = await api.get('/transactions/incoming');
+        setIncomingOrders(resOrders.data.data.filter(tx => 
+          tx.transaction_type === 'order' && 
           tx.status !== 'completed' && 
           tx.status !== 'rejected'
         ));
       } catch (error) {
-        console.error("Error fetching requests:", error);
+        console.error("Error fetching orders:", error);
       }
     };
     fetchData();
@@ -40,10 +43,10 @@ const Sell = () => {
     try {
       await api.put(`/transactions/${id}`, { status: newStatus });
       if (newStatus === 'completed' || newStatus === 'rejected') {
-        setIncomingOrders(prev => prev.filter(req => req.id !== id));
+        setIncomingOrders(prev => prev.filter(order => order.id !== id));
         setSelectedOrder(null);
       } else {
-        setIncomingOrders(prev => prev.map(req => req.id === id ? { ...req, status: newStatus } : req));
+        setIncomingOrders(prev => prev.map(order => order.id === id ? { ...order, status: newStatus } : order));
         setSelectedOrder(prev => ({ ...prev, status: newStatus }));
       }
     } catch (error) {
@@ -51,79 +54,337 @@ const Sell = () => {
     }
   };
 
-  const actionButtonStyle = { padding: '0.75rem 1.5rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', color: 'white', flex: 1 };
+  if (!user) {
+    return (
+      <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
+        <div className="bento-card" style={{ padding: '3.5rem 2rem' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--accent-primary-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <IconShoppingBag size={28} color="var(--accent-primary)" />
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.85rem', marginBottom: '0.75rem', color: 'var(--text-main)' }}>Seller Portal Requires Sign In</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+            Sign in to track orders for your books, calculators, and dorm gear.
+          </p>
+          <Link to="/login" className="btn-primary" style={{ padding: '0.75rem 2rem' }}>
+            Sign In Now
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const pendingCount = incomingOrders.filter(o => o.status === 'pending').length;
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '2.5rem 1.5rem 5rem', maxWidth: '1260px', margin: '0 auto', width: '100%' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1rem 0', marginBottom: '1rem', position: 'sticky', top: '73px', zIndex: 990, backgroundColor: '#0f172a', boxShadow: '0 10px 15px -10px rgba(0,0,0,0.5)' }}>
+      {/* Top Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start', 
+        flexWrap: 'wrap', 
+        gap: '1.75rem', 
+        marginBottom: '2.25rem' 
+      }}>
         <div>
-          <h2 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>My Selling Dashboard</h2>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>Manage your active listings and incoming orders.</p>
-        </div>
-        <Link to="/create-resource?type=sell" style={{ backgroundColor: 'var(--accent-red)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' }}>+ New Sell Post</Link>
-      </div>
-
-      {/* RESTORED: INCOMING ORDERS SECTION */}
-      <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Incoming Orders</h3>
-      <div className="bento-grid" style={{ padding: 0, marginBottom: '3rem' }}>
-        {incomingOrders.length > 0 ? incomingOrders.map(order => (
-          <div 
-            key={order.id} 
-            onClick={() => setSelectedOrder(order)}
-            className="bento-card"
-            style={{ cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid rgba(255,255,255,0.05)' }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{order.title}</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Buyer: {order.requester_name}</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0' }}>Quantity: {order.quantity}</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.25rem 0' }}>Status: <span style={{ color: order.status === 'approved' ? '#10b981' : '#f59e0b', textTransform: 'capitalize' }}>{order.status}</span></p>
-            <p style={{ color: 'var(--accent-red)', fontWeight: 'bold', marginTop: '1rem' }}>Click to view details</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-primary)', fontSize: '0.82rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.45rem' }}>
+            <IconShoppingBag size={14} color="var(--accent-primary)" />
+            <span>Seller Command Center</span>
           </div>
-        )) : <p style={{ color: 'var(--text-muted)' }}>No active orders right now.</p>}
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', fontWeight: '700', color: 'var(--text-main)', lineHeight: '1.2' }}>
+            My Selling Dashboard
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginTop: '0.45rem' }}>
+            Manage active marketplace listings, review incoming campus orders, and hand over items.
+          </p>
+        </div>
+
+        <Link to="/create-resource?type=sell" className="btn-primary">
+          <IconPlus size={16} />
+          <span>New Sell Post</span>
+        </Link>
       </div>
 
-      <hr style={{ borderColor: 'rgba(255,255,255,0.05)', marginBottom: '2rem' }} />
+      {/* Summary KPI Cards */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+        gap: '1.25rem', 
+        marginBottom: '2.75rem' 
+      }}>
+        <div className="bento-card" style={{ padding: '1.35rem 1.6rem' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+            Active Listings
+          </span>
+          <div style={{ fontSize: '2.1rem', fontWeight: '800', marginTop: '0.35rem', color: 'var(--text-main)' }}>
+            {userItems.length}
+          </div>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Currently listed in marketplace</p>
+        </div>
 
-      <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>My Sellable Items</h3>
-      <div className="bento-grid" style={{ padding: 0, marginBottom: '3rem' }}>
-        {userItems.length > 0 ? userItems.map(resource => <div key={resource.id}><ResourceCard resource={resource} /></div>) : <p style={{ color: 'var(--text-muted)' }}>You haven't listed any items to sell yet.</p>}
+        <div className="bento-card" style={{ padding: '1.35rem 1.6rem', borderColor: pendingCount > 0 ? 'var(--accent-primary-border)' : undefined }}>
+          <span style={{ fontSize: '0.82rem', color: pendingCount > 0 ? 'var(--accent-primary)' : 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+            Orders Awaiting Approval
+          </span>
+          <div style={{ fontSize: '2.1rem', fontWeight: '800', marginTop: '0.35rem', color: pendingCount > 0 ? 'var(--accent-primary)' : 'var(--text-main)' }}>
+            {pendingCount}
+          </div>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Requires your confirmation</p>
+        </div>
+
+        <div className="bento-card" style={{ padding: '1.35rem 1.6rem' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+            Active In-Progress
+          </span>
+          <div style={{ fontSize: '2.1rem', fontWeight: '800', marginTop: '0.35rem', color: 'var(--accent-emerald)' }}>
+            {incomingOrders.filter(o => o.status === 'approved').length}
+          </div>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Approved, ready for meetup</p>
+        </div>
       </div>
 
-      {/* MODAL */}
+      {/* SECTION: INCOMING ORDERS */}
+      <div style={{ marginBottom: '3.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.35rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.65rem', fontWeight: '700', color: 'var(--text-main)' }}>Incoming Buyer Orders</h2>
+          {incomingOrders.length > 0 && (
+            <span style={{ 
+              backgroundColor: 'var(--accent-primary-subtle)', 
+              color: 'var(--accent-primary)', 
+              padding: '0.22rem 0.7rem', 
+              borderRadius: '9999px',
+              fontSize: '0.82rem',
+              fontWeight: '700'
+            }}>
+              {incomingOrders.length}
+            </span>
+          )}
+        </div>
+
+        {incomingOrders.length > 0 ? (
+          <div className="bento-grid">
+            {incomingOrders.map(order => (
+              <div 
+                key={order.id} 
+                onClick={() => setSelectedOrder(order)}
+                className="bento-card"
+                style={{ 
+                  cursor: 'pointer', 
+                  border: order.status === 'pending' ? '1px solid var(--accent-primary-border)' : '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                    <span style={{ 
+                      fontSize: '0.78rem', 
+                      fontWeight: '700', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.04em',
+                      padding: '0.28rem 0.7rem',
+                      borderRadius: '9999px',
+                      backgroundColor: order.status === 'approved' ? 'var(--accent-emerald-subtle)' : 'var(--accent-amber-subtle)',
+                      color: order.status === 'approved' ? 'var(--accent-emerald-text)' : 'var(--accent-amber-text)'
+                    }}>
+                      {order.status}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {new Date(order.created_at || Date.now()).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--text-main)' }}>
+                    {order.title}
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Buyer: </span>
+                      <strong>{order.requester_name}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)' }}>Quantity: </span>
+                      <strong>{order.quantity} units</strong>
+                    </div>
+                    {order.payment_method && (
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Payment: </span>
+                        <strong style={{ textTransform: 'uppercase' }}>{order.payment_method}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  paddingTop: '0.85rem', 
+                  borderTop: '1px solid var(--border-subtle)' 
+                }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--accent-primary)' }}>
+                    ৳ {(Number(order.price) * Number(order.quantity)).toFixed(2)}
+                  </span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
+                    Manage Order →
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bento-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+              No active incoming orders right now. New requests will appear here when students order your items.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION: MY SELLABLE ITEMS */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.35rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.65rem', fontWeight: '700', color: 'var(--text-main)' }}>My Listed Items</h2>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            {userItems.length} active posts
+          </span>
+        </div>
+
+        {userItems.length > 0 ? (
+          <div className="bento-grid">
+            {userItems.map(resource => (
+              <div key={resource.id}>
+                <ResourceCard resource={resource} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bento-card" style={{ textAlign: 'center', padding: '3.5rem 2rem' }}>
+            <h3 style={{ fontSize: '1.35rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>You haven't listed any items for sale</h3>
+            <p style={{ color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto 1.5rem', fontSize: '0.95rem' }}>
+              Post textbooks, lab kits, or electronic gadgets you no longer need.
+            </p>
+            <Link to="/create-resource?type=sell" className="btn-primary">
+              <IconPlus size={16} />
+              <span>Create Your First Listing</span>
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* ORDER DETAILS & ACTION MODAL */}
       {selectedOrder && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-          <div className="bento-card" style={{ width: '100%', maxWidth: '500px', backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Order Details</h3>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '490px' }}>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem', color: 'var(--text-main)' }}>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Buyer:</strong><br/>{selectedOrder.requester_name}</div>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Contact:</strong><br/>{selectedOrder.requester_phone}</div>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Item:</strong><br/>{selectedOrder.title}</div>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Quantity Ordered:</strong><br/>{selectedOrder.quantity}</div>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Pickup Location:</strong><br/>{selectedOrder.location}</div>
-              <div><strong style={{ color: 'var(--text-muted)' }}>Total Price:</strong><br/><span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>৳ {(selectedOrder.price * selectedOrder.quantity).toFixed(2)}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: '800', color: 'var(--text-main)' }}>Order Details</h3>
+                <span style={{ 
+                  display: 'inline-block',
+                  fontSize: '0.78rem', 
+                  fontWeight: '700', 
+                  textTransform: 'uppercase', 
+                  padding: '0.22rem 0.65rem',
+                  borderRadius: '9999px',
+                  marginTop: '0.35rem',
+                  backgroundColor: selectedOrder.status === 'approved' ? 'var(--accent-emerald-subtle)' : 'var(--accent-amber-subtle)',
+                  color: selectedOrder.status === 'approved' ? 'var(--accent-emerald-text)' : 'var(--accent-amber-text)'
+                }}>
+                  Status: {selectedOrder.status}
+                </span>
+              </div>
+              <button onClick={() => setSelectedOrder(null)} className="btn-ghost" style={{ padding: '0.4rem' }}>
+                <IconX size={20} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button onClick={() => setSelectedOrder(null)} style={{ ...actionButtonStyle, backgroundColor: 'rgba(255,255,255,0.1)' }}>← Back</button>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '1.1rem', 
+              backgroundColor: 'var(--bg-surface-subtle)',
+              padding: '1.25rem',
+              borderRadius: '14px',
+              border: '1px solid var(--border-subtle)',
+              marginBottom: '1.75rem',
+              fontSize: '0.9rem'
+            }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Buyer Name</span>
+                <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.requester_name}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Phone / WhatsApp</span>
+                <strong style={{ color: 'var(--accent-primary)' }}>{selectedOrder.requester_phone || 'N/A'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Item Ordered</span>
+                <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.title}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Quantity</span>
+                <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.quantity} units</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Meetup Location</span>
+                <strong style={{ color: 'var(--text-main)' }}>{selectedOrder.location}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Total Amount</span>
+                <strong style={{ color: 'var(--accent-emerald)', fontSize: '1.2rem', fontWeight: 800 }}>
+                  ৳ {(Number(selectedOrder.price) * Number(selectedOrder.quantity)).toFixed(2)}
+                </strong>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                onClick={() => setSelectedOrder(null)} 
+                className="btn-secondary" 
+                style={{ flex: 1 }}
+              >
+                Back
+              </button>
               
               {selectedOrder.status === 'pending' && (
                 <>
-                  <button onClick={() => handleUpdateStatus(selectedOrder.id, 'rejected')} style={{ ...actionButtonStyle, backgroundColor: 'var(--accent-red)' }}>Reject</button>
-                  <button onClick={() => handleUpdateStatus(selectedOrder.id, 'approved')} style={{ ...actionButtonStyle, backgroundColor: '#10b981' }}>Approve</button>
+                  <button 
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'rejected')} 
+                    className="btn-secondary"
+                    style={{ flex: 1, borderColor: 'var(--accent-rose)', color: 'var(--accent-rose-text)' }}
+                  >
+                    Reject
+                  </button>
+                  <button 
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'approved')} 
+                    className="btn-primary"
+                    style={{ flex: 1.5, background: 'linear-gradient(135deg, var(--accent-emerald) 0%, #166534 100%)' }}
+                  >
+                    Approve Order
+                  </button>
                 </>
               )}
               
               {selectedOrder.status === 'approved' && (
-                <button onClick={() => handleUpdateStatus(selectedOrder.id, 'completed')} style={{ ...actionButtonStyle, backgroundColor: '#10b981' }}>Mark as Handed Over</button>
+                <button 
+                  onClick={() => handleUpdateStatus(selectedOrder.id, 'completed')} 
+                  className="btn-primary"
+                  style={{ flex: 2, background: 'linear-gradient(135deg, var(--accent-emerald) 0%, #166534 100%)' }}
+                >
+                  Mark as Handed Over ✓
+                </button>
               )}
             </div>
+
           </div>
         </div>
       )}
+
     </div>
   );
 };

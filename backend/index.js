@@ -20,24 +20,19 @@ app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
 
 
-const db = mysql.createPool({
-  uri: process.env.DATABASE_URL,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const db = require('./db');
 
 app.get('/', (req, res) => {
   res.send('CholoShareKori Backend is running!');
 });
 
-app.get('/users', (req, res) => {
-  db.query('SELECT * FROM users', (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+app.get('/users', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM users');
     res.json(results);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(port, () => {
