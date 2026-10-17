@@ -9,7 +9,9 @@ import {
   IconBookOpen, 
   IconGift, 
   IconCheck, 
-  IconAlertCircle
+  IconAlertCircle,
+  IconCamera,
+  IconX
 } from '../components/Icons';
 import { saveStoredCampusListing } from '../services/campusData';
 
@@ -55,8 +57,13 @@ const CreateResources = () => {
     price: '', 
     description: '',
     urgency: 'low',
-    condition: 'Gently Used (Good)'
+    condition: 'Gently Used (Good)',
+    image_url: ''
   });
+
+  const [imagePreview, setImagePreview] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoTab, setPhotoTab] = useState('upload'); // 'upload' | 'url'
 
   useEffect(() => {
     setFormData(prev => ({ ...prev, listing_type: fixedType }));
@@ -65,6 +72,53 @@ const CreateResources = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Selected image is too large (max 5MB).');
+      return;
+    }
+
+    // Immediate local base64 preview
+    const reader = new FileReader();
+    reader.onload = (uploadEvt) => {
+      setImagePreview(uploadEvt.target.result);
+      if (!formData.image_url) {
+        setFormData(prev => ({ ...prev, image_url: uploadEvt.target.result }));
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to backend API
+    setUploadingPhoto(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('photo', file);
+      const uploadRes = await api.post('/upload', uploadFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (uploadRes.data?.data?.url) {
+        setFormData(prev => ({ ...prev, image_url: uploadRes.data.data.url }));
+      }
+    } catch (uploadErr) {
+      console.warn('Backend upload note, using base64 preview directly:', uploadErr);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const removePhoto = () => {
+    setImagePreview('');
+    setFormData(prev => ({ ...prev, image_url: '' }));
+  };
 
   const uiConfig = {
     sell: { 
@@ -121,6 +175,7 @@ const CreateResources = () => {
       category: formData.category,
       location: formData.location,
       pickup_spot: formData.location,
+      image_url: formData.image_url || imagePreview || null,
       description: formData.description,
       quantity: Number(formData.quantity) || 1,   
       price: formData.price === '' ? (formData.listing_type === 'free' ? 0 : 0) : Number(formData.price),
@@ -369,6 +424,145 @@ const CreateResources = () => {
             <option value="Functional / Well Maintained">Functional / Well Maintained</option>
             <option value="New (Unused)">New (Unused in original box)</option>
           </select>
+        </div>
+
+        {/* Photo Upload & Image Attachment */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <label style={{ fontSize: '0.88rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <IconCamera size={16} color="var(--accent-primary)" />
+              <span>Item Photo (Optional but Recommended)</span>
+            </label>
+            <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-surface-subtle)', padding: '0.2rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <button
+                type="button"
+                onClick={() => setPhotoTab('upload')}
+                style={{
+                  background: photoTab === 'upload' ? 'var(--accent-gradient)' : 'transparent',
+                  color: photoTab === 'upload' ? '#ffffff' : 'var(--text-secondary)',
+                  border: 'none',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoTab('url')}
+                style={{
+                  background: photoTab === 'url' ? 'var(--accent-gradient)' : 'transparent',
+                  color: photoTab === 'url' ? '#ffffff' : 'var(--text-secondary)',
+                  border: 'none',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Image URL
+              </button>
+            </div>
+          </div>
+
+          {photoTab === 'upload' ? (
+            <div>
+              {!imagePreview && !formData.image_url ? (
+                <label style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '1.75rem 1rem',
+                  borderRadius: '12px',
+                  border: '2px dashed var(--border-subtle)',
+                  background: 'var(--bg-surface-subtle)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'var(--accent-primary-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.65rem', color: 'var(--accent-primary)' }}>
+                    <IconCamera size={20} />
+                  </div>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    {uploadingPhoto ? 'Uploading photo...' : 'Click to select item photo from device'}
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    JPG, PNG, or WebP up to 5MB
+                  </span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handlePhotoUpload} 
+                    style={{ display: 'none' }} 
+                  />
+                </label>
+              ) : null}
+            </div>
+          ) : (
+            <div>
+              <input 
+                type="url" 
+                name="image_url" 
+                value={formData.image_url} 
+                onChange={(e) => {
+                  handleChange(e);
+                  setImagePreview(e.target.value);
+                }}
+                placeholder="https://images.unsplash.com/... or direct image link"
+                className="form-input" 
+              />
+            </div>
+          )}
+
+          {/* Image Preview & Remove button */}
+          {(imagePreview || formData.image_url) && (
+            <div style={{ marginTop: '0.85rem', position: 'relative', display: 'inline-block' }}>
+              <div style={{ 
+                borderRadius: '12px', 
+                overflow: 'hidden', 
+                border: '2px solid var(--border-subtle)', 
+                width: '140px', 
+                height: '110px', 
+                background: 'var(--bg-surface-subtle)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+              }}>
+                <img 
+                  src={imagePreview || formData.image_url} 
+                  alt="Item Preview" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  onError={(e) => { e.target.src = 'https://placehold.co/140x110?text=Preview+Error'; }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={removePhoto}
+                className="btn-ghost"
+                style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  width: '24px',
+                  height: '24px',
+                  padding: 0,
+                  borderRadius: '50%',
+                  background: 'var(--accent-rose)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                }}
+                title="Remove photo"
+              >
+                <IconX size={13} color="#ffffff" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Description */}

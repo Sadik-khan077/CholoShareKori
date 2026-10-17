@@ -4,13 +4,18 @@ backend/node_modules/
 frontend/node_modules/
 
 # Local databases & logs
-backend/database.sqlite
-*.sqlite
-*.sqlite3
+backend/database.sqlite*
+*.sqlite*
+*.sqlite3*
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Uploaded media (preserve directory via .gitkeep)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 
 # Production build
 frontend/build/

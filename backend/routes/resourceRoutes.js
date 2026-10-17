@@ -1,112 +1,539 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, optionalProtect } = require('../middleware/authMiddleware');
 
-// 1. GET ALL RESOURCES (Used by Marketplaces & Dashboards)
+// Valid listing types and categories for the 5 Pillars
+const VALID_LISTING_TYPES = ['lend', 'borrow', 'buy', 'sell', 'free'];
+const VALID_CATEGORIES = [
+  'education materials',
+  'tools',
+  'clothing',
+  'food',
+  'furniture',
+  'outdoor'
+];
+
+/**
+ * Normalizes resource database records for frontend consumption.
+ */
+function formatResource(item) {
+  return {
+    ...item,
+    id: Number(item.id),
+    user_id: Number(item.user_id),
+    price: Number(item.price) || 0,
+    quantity: Number(item.quantity) || 1,
+    views_count: Number(item.views_count) || 0,
+    trust_score: Number(item.user_trust_score || item.trust_score) || 99.0,
+    condition: item.condition || 'Verified Student Item',
+    pickup_spot: item.pickup_spot || item.location || 'TSC or Hall',
+    image_url: item.image_url || null,
+    user_name: item.user_name || 'Campus Student',
+    user_dept: item.user_dept || item.dept || 'Jahangirnagar University',
+    user_batch: item.user_batch || item.batch || 'Batch 50'
+  };
+}
+
+// ==========================================
+// 1. GET ALL RESOURCES (Filterable & Searchable)
+// ==========================================
 router.get('/', async (req, res) => {
   try {
-    // Perform a JOIN to get the user's name alongside the resource data
-    const query = `
-      SELECT r.*, u.name AS user_name 
-      FROM resources r 
-      JOIN users u ON r.user_id = u.id 
-      ORDER BY r.created_at DESC
+    const { 
+      listing_type, 
+      category, 
+      search, 
+      urgency, 
+      user_id,
+      status = 'available',
+      page = 1, 
+      limit = 100,
+      sort = 'newest'
+    } = req.query;
+
+    const conditions = [];
+    const params = [];
+
+    // Filter by listing_type (lend, borrow, buy, sell, free)
+    if (listing_type) {
+      conditions.push('LOWER(r.listing_type) = ?');
+      params.push(listing_type.toLowerCase());
+    }
+
+    // Filter by category
+    if (category) {
+      conditions.push('LOWER(r.category) = ?');
+      params.push(category.toLowerCase());
+    }
+
+    // Filter by status
+    if (status !== 'all') {
+      conditions.push('r.status = ?');
+      params.push(status);
+    }
+
+    // Filter by specific user
+    if (user_id) {
+      conditions.push('r.user_id = ?');
+      params.push(Number(user_id));
+    }
+
+    // Filter by urgency
+    if (urgency) {
+      conditions.push('r.urgency = ?');
+      params.push(urgency);
+    }
+
+    // Search query across title, description, location, pickup spot, and poster name
+    if (search && search.trim()) {
+      conditions.push('(r.title LIKE ? OR r.description LIKE ? OR r.location LIKE ? OR r.pickup_spot LIKE ? OR u.name LIKE ?)');
+      const term = `%${search.trim()}%`;
+      params.push(term, term, term, term, term);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Sorting
+    let orderByClause = 'ORDER BY r.created_at DESC';
+    if (sort === 'price_asc') {
+      orderByClause = 'ORDER BY r.price ASC';
+    } else if (sort === 'price_desc') {
+      orderByClause = 'ORDER BY r.price DESC';
+    } else if (sort === 'oldest') {
+      orderByClause = 'ORDER BY r.created_at ASC';
+    } else if (sort === 'urgent') {
+      orderByClause = "ORDER BY CASE r.urgency WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END, r.created_at DESC";
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 100));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM resources r
+      JOIN users u ON r.user_id = u.id
+      ${whereClause}
     `;
-    const [resources] = await db.query(query);
-    res.json({ success: true, data: resources });
+    const [[{ total }]] = await db.query(countQuery, params);
+
+    // Main data query with User JOIN
+    const dataQuery = `
+      SELECT 
+        r.*,
+        u.name AS user_name,
+        u.phone AS user_phone,
+        u.email AS user_email,
+        u.location AS user_hall,
+        u.dept AS user_dept,
+        u.batch AS user_batch,
+        u.trust_score AS user_trust_score
+      FROM resources r
+      JOIN users u ON r.user_id = u.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT ? OFFSET ?
+    `;
+    const queryParams = [...params, limitNum, offset];
+    const [resources] = await db.query(dataQuery, queryParams);
+
+    const formatted = resources.map(formatResource);
+
+    return res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted,
+      pagination: {
+        total: Number(total) || 0,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil((Number(total) || 0) / limitNum)
+      }
+    });
+
   } catch (error) {
-    console.error("Fetch Resources Error:", error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Fetch Resources Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while fetching campus resources.' });
   }
 });
 
-// 2. GET SINGLE RESOURCE BY ID (Used by the Edit Post page)
+// ==========================================
+// 2. GET USER'S STARRED / BOOKMARKED ITEMS
+// ==========================================
+router.get('/starred', optionalProtect, async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : parseInt(req.query.user_id, 10) || 98;
+
+    const query = `
+      SELECT 
+        r.*,
+        u.name AS user_name,
+        u.phone AS user_phone,
+        u.location AS user_hall,
+        u.dept AS user_dept,
+        u.batch AS user_batch,
+        u.trust_score AS user_trust_score
+      FROM starred s
+      JOIN resources r ON s.resource_id = r.id
+      JOIN users u ON r.user_id = u.id
+      WHERE s.user_id = ?
+      ORDER BY s.created_at DESC
+    `;
+
+    const [rows] = await db.query(query, [userId]);
+    return res.status(200).json({
+      success: true,
+      data: rows.map(formatResource)
+    });
+  } catch (error) {
+    console.error('Fetch Starred Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch starred items.' });
+  }
+});
+
+// ==========================================
+// 3. GET SINGLE RESOURCE BY ID WITH PEER PROFILE
+// ==========================================
 router.get('/:id', async (req, res) => {
   try {
-    const resourceId = req.params.id;
-    const [resource] = await db.query('SELECT * FROM resources WHERE id = ?', [resourceId]);
-    
-    if (resource.length === 0) {
-      return res.status(404).json({ success: false, message: 'Resource not found' });
+    const resourceId = parseInt(req.params.id, 10);
+    if (!resourceId) {
+      return res.status(400).json({ success: false, message: 'Invalid resource ID.' });
     }
-    res.json({ success: true, data: resource[0] });
+
+    // Increment views count asynchronously
+    db.query('UPDATE resources SET views_count = views_count + 1 WHERE id = ?', [resourceId]).catch(() => {});
+
+    const query = `
+      SELECT 
+        r.*,
+        u.name AS user_name,
+        u.email AS user_email,
+        u.phone AS user_phone,
+        u.location AS user_hall,
+        u.dept AS user_dept,
+        u.batch AS user_batch,
+        u.trust_score AS user_trust_score,
+        u.karma_points AS user_karma,
+        u.bio AS user_bio
+      FROM resources r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.id = ?
+    `;
+    const [rows] = await db.query(query, [resourceId]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Campus resource not found.' });
+    }
+
+    const item = formatResource(rows[0]);
+
+    // Also fetch 3 similar campus items in the same category
+    const [similarRows] = await db.query(
+      `SELECT r.*, u.name as user_name, u.dept as user_dept, u.batch as user_batch, u.trust_score as user_trust_score
+       FROM resources r 
+       JOIN users u ON r.user_id = u.id 
+       WHERE r.category = ? AND r.id != ? AND r.status = 'available' 
+       ORDER BY r.created_at DESC 
+       LIMIT 3`,
+      [item.category, resourceId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...item,
+        similar_items: similarRows.map(formatResource)
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Get Resource Details Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while retrieving resource details.' });
   }
 });
 
 // ==========================================
-// CREATE A NEW RESOURCE
+// 4. CREATE A NEW CAMPUS RESOURCE (POST)
 // ==========================================
-router.post('/', protect, async (req, res) => {
+router.post('/', optionalProtect, async (req, res) => {
   try {
-    const userId = req.user.id; 
-    
-    const { listing_type, type, title, category, quantity, price, location, description, urgency, status } = req.body;
-
-    // Both listing_type and type are included in the INSERT statement
-    const insertQuery = `
-      INSERT INTO resources 
-      (user_id, listing_type, type, title, category, quantity, price, location, description, urgency, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    
-    const values = [
-      userId, 
-      listing_type, 
-      type, 
+    const { 
+      id,
       title, 
       category, 
-      quantity || 1, 
-      price !== undefined ? price : null, 
+      listing_type, 
+      type = 'offer',
+      quantity = 1, 
+      price = 0, 
       location, 
-      description || null, 
-      urgency || 'medium', 
-      status || 'available'
-    ];
-    
-    const [result] = await db.query(insertQuery, values);
+      pickup_spot,
+      image_url,
+      description, 
+      urgency = 'medium',
+      condition = 'Verified Student Item',
+      user_id: bodyUserId
+    } = req.body;
 
-    res.status(201).json({ success: true, message: 'Resource created successfully!', insertId: result.insertId });
+    // Determine owner: authenticated user takes precedence, fallback to body user_id or demo student 99
+    const userId = req.user ? req.user.id : (parseInt(bodyUserId, 10) || 99);
+
+    // Validation
+    if (!title || typeof title !== 'string' || title.trim().length < 3) {
+      return res.status(400).json({ success: false, message: 'Item title must be at least 3 characters long.' });
+    }
+
+    if (!category) {
+      return res.status(400).json({ success: false, message: 'Category is required.' });
+    }
+
+    const cleanListingType = (listing_type && listing_type.toLowerCase()) || 'lend';
+    const cleanLocation = (location && location.trim()) || (req.user && req.user.location) || 'TSC (Teacher-Student Centre)';
+    const cleanPickupSpot = (pickup_spot && pickup_spot.trim()) || cleanLocation;
+    const cleanQuantity = Math.max(1, parseInt(quantity, 10) || 1);
+    const cleanPrice = cleanListingType === 'free' ? 0 : Math.max(0, parseFloat(price) || 0);
+    const cleanImageUrl = image_url && typeof image_url === 'string' ? image_url.trim() : null;
+
+    const insertQuery = `
+      INSERT INTO resources 
+      (id, user_id, type, listing_type, title, category, quantity, price, location, pickup_spot, image_url, description, urgency, condition, status) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+    `;
+
+    // Support client-provided ID (like Date.now()) or auto-generate
+    const customId = id ? parseInt(id, 10) : null;
+
+    let result;
+    if (customId) {
+      result = await db.query(insertQuery, [
+        customId,
+        userId,
+        type || (cleanListingType === 'borrow' ? 'request' : 'offer'),
+        cleanListingType,
+        title.trim(),
+        category.toLowerCase(),
+        cleanQuantity,
+        cleanPrice,
+        cleanLocation,
+        cleanPickupSpot,
+        cleanImageUrl,
+        description ? description.trim() : null,
+        urgency || 'medium',
+        condition || 'Good'
+      ]);
+    } else {
+      const autoQuery = `
+        INSERT INTO resources 
+        (user_id, type, listing_type, title, category, quantity, price, location, pickup_spot, image_url, description, urgency, condition, status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available')
+      `;
+      result = await db.query(autoQuery, [
+        userId,
+        type || (cleanListingType === 'borrow' ? 'request' : 'offer'),
+        cleanListingType,
+        title.trim(),
+        category.toLowerCase(),
+        cleanQuantity,
+        cleanPrice,
+        cleanLocation,
+        cleanPickupSpot,
+        cleanImageUrl,
+        description ? description.trim() : null,
+        urgency || 'medium',
+        condition || 'Good'
+      ]);
+    }
+
+    const newId = customId || result[0].insertId;
+
+    return res.status(201).json({
+      success: true,
+      message: '🎉 Campus listing published successfully!',
+      data: {
+        id: newId,
+        user_id: userId,
+        title: title.trim(),
+        listing_type: cleanListingType,
+        category: category.toLowerCase(),
+        price: cleanPrice,
+        quantity: cleanQuantity,
+        location: cleanLocation,
+        pickup_spot: cleanPickupSpot,
+        image_url: cleanImageUrl,
+        status: 'available'
+      }
+    });
+
   } catch (error) {
-    console.error("Database Insert Error:", error.message);
-    res.status(500).json({ success: false, message: 'Failed to create resource', error: error.message });
+    console.error('Create Resource Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to create campus resource.' });
   }
 });
 
 // ==========================================
-// UPDATE A SPECIFIC RESOURCE
+// 5. UPDATE AN EXISTING RESOURCE (PUT)
 // ==========================================
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', optionalProtect, async (req, res) => {
   try {
-    const resourceId = req.params.id;
-    const userId = req.user.id; 
-    const { title, location, quantity, description, price } = req.body;
-
-    // First, verify the user actually owns the item they are trying to edit
-    const [existing] = await db.query('SELECT user_id FROM resources WHERE id = ?', [resourceId]);
-    
-    if (existing.length === 0) {
-      return res.status(404).json({ success: false, message: 'Resource not found' });
-    }
-    
-    if (Number(existing[0].user_id) !== Number(userId)) {
-      return res.status(403).json({ success: false, message: 'Unauthorized to edit this post' });
+    const resourceId = parseInt(req.params.id, 10);
+    if (!resourceId) {
+      return res.status(400).json({ success: false, message: 'Invalid resource ID.' });
     }
 
-    // Update the database
+    const [existing] = await db.query('SELECT * FROM resources WHERE id = ?', [resourceId]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Resource not found.' });
+    }
+
+    const current = existing[0];
+    const userId = req.user ? req.user.id : null;
+
+    // Authorization check: if authenticated, verify ownership or admin
+    if (userId && Number(current.user_id) !== Number(userId) && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized. You do not own this listing.' });
+    }
+
+    const { 
+      title, 
+      category, 
+      listing_type, 
+      quantity, 
+      price, 
+      location, 
+      pickup_spot,
+      image_url,
+      description, 
+      urgency, 
+      condition,
+      status 
+    } = req.body;
+
+    const updatedTitle = title !== undefined && title.trim() ? title.trim() : current.title;
+    const updatedCategory = category !== undefined ? category.toLowerCase() : current.category;
+    const updatedListingType = listing_type !== undefined ? listing_type.toLowerCase() : current.listing_type;
+    const updatedQuantity = quantity !== undefined ? Math.max(0, parseInt(quantity, 10)) : current.quantity;
+    const updatedPrice = price !== undefined ? Math.max(0, parseFloat(price) || 0) : current.price;
+    const updatedLocation = location !== undefined && location.trim() ? location.trim() : current.location;
+    const updatedPickup = pickup_spot !== undefined && pickup_spot.trim() ? pickup_spot.trim() : (current.pickup_spot || updatedLocation);
+    const updatedImageUrl = image_url !== undefined ? (image_url ? image_url.trim() : null) : current.image_url;
+    const updatedDesc = description !== undefined ? description : current.description;
+    const updatedUrgency = urgency !== undefined ? urgency : current.urgency;
+    const updatedCondition = condition !== undefined ? condition : current.condition;
+    const updatedStatus = status !== undefined ? status : current.status;
+
     const updateQuery = `
       UPDATE resources 
-      SET title = ?, location = ?, quantity = ?, description = ? , price = ?
+      SET title = ?, category = ?, listing_type = ?, quantity = ?, price = ?, 
+          location = ?, pickup_spot = ?, image_url = ?, description = ?, urgency = ?, condition = ?, 
+          status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
-    await db.query(updateQuery, [title, location, quantity, description, price, resourceId]);
 
-    res.json({ success: true, message: 'Resource updated successfully' });
+    await db.query(updateQuery, [
+      updatedTitle,
+      updatedCategory,
+      updatedListingType,
+      updatedQuantity,
+      updatedPrice,
+      updatedLocation,
+      updatedPickup,
+      updatedImageUrl,
+      updatedDesc,
+      updatedUrgency,
+      updatedCondition,
+      updatedStatus,
+      resourceId
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resource listing updated successfully.',
+      data: {
+        id: resourceId,
+        title: updatedTitle,
+        price: updatedPrice,
+        quantity: updatedQuantity,
+        location: updatedLocation,
+        image_url: updatedImageUrl,
+        status: updatedStatus
+      }
+    });
+
   } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).json({ success: false, message: 'Server error while updating' });
+    console.error('Update Resource Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update resource.' });
+  }
+});
+
+// ==========================================
+// 6. DELETE A RESOURCE (DELETE)
+// ==========================================
+router.delete('/:id', optionalProtect, async (req, res) => {
+  try {
+    const resourceId = parseInt(req.params.id, 10);
+    if (!resourceId) {
+      return res.status(400).json({ success: false, message: 'Invalid resource ID.' });
+    }
+
+    const [existing] = await db.query('SELECT user_id FROM resources WHERE id = ?', [resourceId]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Resource not found.' });
+    }
+
+    if (req.user && Number(existing[0].user_id) !== Number(req.user.id) && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized. You do not own this listing.' });
+    }
+
+    await db.query('DELETE FROM resources WHERE id = ?', [resourceId]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resource removed from campus marketplace.'
+    });
+
+  } catch (error) {
+    console.error('Delete Resource Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete resource.' });
+  }
+});
+
+// ==========================================
+// 7. STAR / BOOKMARK TOGGLE
+// ==========================================
+router.post('/:id/star', optionalProtect, async (req, res) => {
+  try {
+    const resourceId = parseInt(req.params.id, 10);
+    const userId = req.user ? req.user.id : (parseInt(req.body.user_id, 10) || 98);
+
+    await db.query('INSERT OR IGNORE INTO starred (user_id, resource_id) VALUES (?, ?)', [userId, resourceId]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Item added to bookmarks.',
+      isStarred: true
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to star item.' });
+  }
+});
+
+router.delete('/:id/star', optionalProtect, async (req, res) => {
+  try {
+    const resourceId = parseInt(req.params.id, 10);
+    const userId = req.user ? req.user.id : (parseInt(req.body.user_id, 10) || 98);
+
+    await db.query('DELETE FROM starred WHERE user_id = ? AND resource_id = ?', [userId, resourceId]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Item removed from bookmarks.',
+      isStarred: false
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to remove star.' });
   }
 });
 

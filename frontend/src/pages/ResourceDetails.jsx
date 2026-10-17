@@ -206,9 +206,23 @@ const ResourceDetails = () => {
             </span>
             <span>•</span>
             <span>Posted {new Date(resource.created_at).toLocaleDateString()}</span>
-            <span>•</span>
-            <span>Condition: <strong style={{ color: 'var(--text-main)' }}>{resource.condition || 'Good Condition'}</strong></span>
           </div>
+
+          {/* Item Photo Showcase */}
+          {resource.image_url && (
+            <div style={{ marginBottom: '1.85rem', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface-subtle)', maxHeight: '360px' }}>
+              <img 
+                src={resource.image_url} 
+                alt={resource.title} 
+                style={{ width: '100%', height: '100%', maxHeight: '360px', objectFit: 'cover', display: 'block' }}
+                onError={(e) => { 
+                  if (e.currentTarget.parentElement) {
+                    e.currentTarget.parentElement.style.display = 'none'; 
+                  }
+                }}
+              />
+            </div>
+          )}
 
           <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.85rem', color: 'var(--text-main)' }}>

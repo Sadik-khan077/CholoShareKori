@@ -163,6 +163,41 @@ const ResourceCard = ({ resource }) => {
           </div>
         </div>
 
+        {/* Resource Photo Banner */}
+        {resource.image_url && (
+          <Link 
+            to={`/resources/${resource.id}`}
+            style={{ 
+              display: 'block', 
+              marginBottom: '0.85rem', 
+              borderRadius: '12px', 
+              overflow: 'hidden', 
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--bg-surface-subtle)',
+              position: 'relative',
+              aspectRatio: '16 / 9'
+            }}
+          >
+            <img 
+              src={resource.image_url} 
+              alt={resource.title} 
+              loading="lazy"
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover', 
+                display: 'block',
+                transition: 'transform 0.25s ease'
+              }}
+              onError={(e) => { 
+                if (e.currentTarget.parentElement) {
+                  e.currentTarget.parentElement.style.display = 'none'; 
+                }
+              }}
+            />
+          </Link>
+        )}
+
         {/* Title */}
         <Link 
           to={`/resources/${resource.id}`}
