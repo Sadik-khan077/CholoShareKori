@@ -20,6 +20,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
     condition: 'Like New (9/10)',
     pickup_spot: 'TSC Cafeteria or Bottola',
+    image_url: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=600&auto=format&fit=crop&q=80',
     views_count: 48,
     is_verified: true
   },
@@ -41,6 +42,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
     condition: 'Gently Used (8/10)',
     pickup_spot: 'Al-Beruni Hall Gate',
+    image_url: 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?w=600&auto=format&fit=crop&q=80',
     views_count: 62,
     is_verified: true
   },
@@ -62,6 +64,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
     condition: 'Crisp & Clean',
     pickup_spot: 'Science Faculty Ground Floor',
+    image_url: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=600&auto=format&fit=crop&q=80',
     views_count: 85,
     is_verified: true,
     max_days: 10,
@@ -85,6 +88,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
     condition: 'Well Maintained',
     pickup_spot: 'Rafiq-Jabbar Hall Canteen',
+    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
     views_count: 41,
     is_verified: true,
     max_days: 14,
@@ -108,6 +112,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
     condition: 'Complete Spiral Notebook',
     pickup_spot: 'Central Library Reference Section',
+    image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
     views_count: 114,
     is_verified: true
   },
@@ -129,6 +134,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 26).toISOString(),
     condition: 'Road-Ready (Good)',
     pickup_spot: 'MMH Hall Main Arch',
+    image_url: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600&auto=format&fit=crop&q=80',
     views_count: 139,
     is_verified: true
   },
@@ -150,6 +156,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 32).toISOString(),
     condition: 'Like New (with box)',
     pickup_spot: 'Pritilata Hall Guest Room',
+    image_url: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80',
     views_count: 73,
     is_verified: true
   },
@@ -171,6 +178,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 40).toISOString(),
     condition: 'Calibrated & Working',
     pickup_spot: 'Cafeteria Tea Stalls',
+    image_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=600&auto=format&fit=crop&q=80',
     views_count: 55,
     is_verified: true,
     max_days: 7,
@@ -194,6 +202,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
     condition: 'All 50 atoms intact',
     pickup_spot: 'Chemistry Dept Notice Board',
+    image_url: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80',
     views_count: 36,
     is_verified: true,
     max_days: 14,
@@ -217,6 +226,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 52).toISOString(),
     condition: 'Freshly Laundered',
     pickup_spot: 'Bhasani Hall Gate',
+    image_url: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=600&auto=format&fit=crop&q=80',
     views_count: 98,
     is_verified: true
   },
@@ -238,6 +248,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 60).toISOString(),
     condition: 'Clean & Sturdy',
     pickup_spot: 'Jahanara Imam Hall Counter',
+    image_url: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=600&auto=format&fit=crop&q=80',
     views_count: 67,
     is_verified: true
   },
@@ -259,6 +270,7 @@ export const initialCampusListings = [
     created_at: new Date(Date.now() - 3600000 * 68).toISOString(),
     condition: 'Sterilized Instruments',
     pickup_spot: 'Biology Faculty Lawn',
+    image_url: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=600&auto=format&fit=crop&q=80',
     views_count: 52,
     is_verified: true,
     max_days: 7,

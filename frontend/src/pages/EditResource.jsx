@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { IconCamera, IconX } from '../components/Icons';
 
 const campusLocations = [
   "TSC (Teacher-Student Centre)", 
@@ -17,7 +18,7 @@ const campusLocations = [
   "Jahanara Imam Hall", 
   "Pritilata Hall", 
   "Noorjahan Hall", 
-  "Sufia Kamal Hall",
+  "Sufia Kamal Hall", 
   "Fatema Mernissi Hall", 
   "Bangamata Sheikh Fazilatunnesa Mujib Hall", 
   "Central Cafeteria",
@@ -39,6 +40,8 @@ const EditResource = () => {
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState(0);
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(true);
   
   // Modal State
@@ -55,6 +58,7 @@ const EditResource = () => {
         setQuantity(item.quantity || 1);
         setDescription(item.description || '');
         setPrice(item.price || 0);
+        setImageUrl(item.image_url || '');
       } catch (error) {
         console.error("Failed to fetch resource:", error);
       } finally {
@@ -65,13 +69,41 @@ const EditResource = () => {
     if (id) fetchResource();
   }, [id]);
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    // Immediate local preview
+    const reader = new FileReader();
+    reader.onload = (uploadEvt) => {
+      setImageUrl(uploadEvt.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    setUploadingPhoto(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('photo', file);
+      const uploadRes = await api.post('/upload', uploadFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (uploadRes.data?.data?.url) {
+        setImageUrl(uploadRes.data.data.url);
+      }
+    } catch (uploadErr) {
+      console.warn('Backend upload note, using base64 preview:', uploadErr);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setShowConfirmModal(true); 
   };
 
   const confirmUpdate = async () => {
-    const updatedData = { title, location, quantity, description, price };
+    const updatedData = { title, location, quantity, description, price, image_url: imageUrl };
     
     try {
       await api.put(`/resources/${id}`, updatedData);
@@ -177,6 +209,59 @@ const EditResource = () => {
               onChange={e => setQuantity(parseInt(e.target.value) || 1)} 
             />
           </div>
+        </div>
+
+        {/* Item Photo */}
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: '600' }}>
+            Item Photo (Upload or Paste Link)
+          </label>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <label className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+              <IconCamera size={15} color="var(--accent-primary)" />
+              <span>{uploadingPhoto ? 'Uploading...' : 'Upload New Photo'}</span>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+            </label>
+            <input 
+              type="url"
+              className="form-input"
+              style={{ flex: 1, minWidth: '220px' }}
+              placeholder="Or paste direct image URL (https://...)"
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
+            />
+          </div>
+
+          {imageUrl && (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <div style={{ width: '130px', height: '100px', borderRadius: '10px', overflow: 'hidden', border: '2px solid var(--border-subtle)', background: 'var(--bg-surface-subtle)' }}>
+                <img src={imageUrl} alt="Item" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = 'https://placehold.co/130x100?text=Invalid+Image'; }} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setImageUrl('')}
+                style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: 'var(--accent-rose)',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                title="Remove photo"
+              >
+                <IconX size={12} color="#ffffff" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Description */}
