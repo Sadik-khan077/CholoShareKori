@@ -167,7 +167,7 @@ router.post('/login', async (req, res) => {
           phone: user.phone,
           location: user.location,
           dept: user.dept || 'Computer Science & Engineering',
-          batch: user.batch || 'Batch 50',
+          batch: user.batch || 'Batch 52',
           registration_no: user.registration_no,
           bio: user.bio,
           trust_score: Number(user.trust_score) || 99.0,
