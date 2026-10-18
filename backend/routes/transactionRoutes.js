@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { protect, optionalProtect } = require('../middleware/authMiddleware');
+const transactionController = require('../controllers/transactionController');
 
 const DAILY_LATE_FEE_BDT = 20;
 
@@ -60,127 +61,7 @@ function enrichTransactionTimeline(tx) {
 // ==========================================
 // 1. CREATE TRANSACTION (Borrow, Claim, or Order)
 // ==========================================
-router.post('/', optionalProtect, async (req, res) => {
-  try {
-    const { 
-      resource_id, 
-      resource_title,
-      provider_id, 
-      provider_name,
-      requester_id,
-      requester_name,
-      requester_phone,
-      transaction_type = 'borrow_request', 
-      quantity = 1, 
-      payment_method = 'cash_on_pickup', 
-      duration_days,
-      pickup_spot,
-      total_price
-    } = req.body;
-
-    const authUserId = req.user ? req.user.id : null;
-    const reqUserId = authUserId || parseInt(requester_id, 10) || 98;
-    const resId = parseInt(resource_id, 10);
-    let provId = parseInt(provider_id, 10);
-    const reqQty = Math.max(1, parseInt(quantity, 10) || 1);
-
-    // Auto-resolve provider_id from resource if omitted
-    if (!provId && resId) {
-      const [resLookup] = await db.query('SELECT user_id FROM resources WHERE id = ?', [resId]);
-      if (resLookup && resLookup.length > 0) {
-        provId = Number(resLookup[0].user_id);
-      }
-    }
-
-    if (!resId || !provId) {
-      return res.status(400).json({ success: false, message: 'Valid resource_id and provider_id are required.' });
-    }
-
-    if (Number(reqUserId) === Number(provId)) {
-      return res.status(400).json({ success: false, message: 'You cannot borrow or purchase your own item.' });
-    }
-
-    // Check item existence and stock
-    const [resources] = await db.query('SELECT id, quantity, title, status, price, location FROM resources WHERE id = ?', [resId]);
-    
-    let item;
-    if (!resources || resources.length === 0) {
-      // Auto-register resource if client referenced a demo item not yet saved
-      await db.query(
-        `INSERT INTO resources (id, user_id, type, listing_type, title, category, quantity, price, location, pickup_spot, status)
-         VALUES (?, ?, 'offer', 'lend', ?, 'education materials', 1, 0, 'TSC', 'TSC', 'available')`,
-        [resId, provId, resource_title || 'Campus Item']
-      );
-      item = { id: resId, quantity: 1, title: resource_title || 'Campus Item', status: 'available', price: 0 };
-    } else {
-      item = resources[0];
-    }
-
-    if (item.quantity < reqQty || item.status === 'fulfilled') {
-      return res.status(400).json({ success: false, message: 'Insufficient quantity available for this item.' });
-    }
-
-    // Check for an already pending active request from this requester for this item
-    const [existingActive] = await db.query(
-      "SELECT id FROM transactions WHERE resource_id = ? AND requester_id = ? AND status IN ('pending', 'approved', 'active')",
-      [resId, reqUserId]
-    );
-
-    if (existingActive && existingActive.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'You already have an active or pending request for this item.'
-      });
-    }
-
-    // Deduct quantity from inventory
-    await db.query('UPDATE resources SET quantity = MAX(0, quantity - ?) WHERE id = ?', [reqQty, resId]);
-
-    // Calculate total price
-    const calcTotalPrice = total_price !== undefined && total_price !== null 
-      ? parseFloat(total_price) 
-      : (parseFloat(item.price) || 0) * reqQty;
-
-    const cleanPickup = (pickup_spot && pickup_spot.trim()) || item.location || 'TSC (Teacher-Student Centre)';
-
-    // Insert transaction
-    const insertQuery = `
-      INSERT INTO transactions 
-      (resource_id, requester_id, provider_id, transaction_type, quantity, payment_method, duration_days, pickup_spot, total_price, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `;
-
-    const [txResult] = await db.query(insertQuery, [
-      resId,
-      reqUserId,
-      provId,
-      transaction_type,
-      reqQty,
-      payment_method || 'cash_on_pickup',
-      duration_days ? parseInt(duration_days, 10) : null,
-      cleanPickup,
-      calcTotalPrice
-    ]);
-
-    return res.status(201).json({
-      success: true,
-      message: 'Request sent to peer provider successfully!',
-      transaction_id: txResult.insertId,
-      id: txResult.insertId,
-      data: {
-        id: txResult.insertId,
-        resource_id: resId,
-        provider_id: provId,
-        requester_id: reqUserId,
-        status: 'pending'
-      }
-    });
-
-  } catch (error) {
-    console.error('Create Transaction Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error while submitting request.' });
-  }
-});
+router.post('/', optionalProtect, transactionController.create);
 
 // ==========================================
 // 2. GET INCOMING REQUESTS (For Lenders & Sellers)
