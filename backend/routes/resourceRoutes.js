@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { protect, optionalProtect } = require('../middleware/authMiddleware');
+<<<<<<< HEAD
 const resourceController = require('../controllers/resourceController');
+=======
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
 
 // Valid listing types and categories for the 5 Pillars
 const VALID_LISTING_TYPES = ['lend', 'borrow', 'buy', 'sell', 'free'];
@@ -39,9 +42,167 @@ function formatResource(item) {
 // ==========================================
 // 1. GET ALL RESOURCES (Filterable & Searchable)
 // ==========================================
+<<<<<<< HEAD
 router.get('/', resourceController.getAllResources);
 
 // ==========================================
+// 2. GET USER'S STARRED / BOOKMARKED ITEMS
+// ==========================================
+router.get('/starred', optionalProtect, async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : parseInt(req.query.user_id, 10) || 98;
+
+    const query = `
+      SELECT 
+        r.*,
+        u.name AS user_name,
+        u.phone AS user_phone,
+        u.location AS user_hall,
+        u.dept AS user_dept,
+        u.batch AS user_batch,
+        u.trust_score AS user_trust_score
+      FROM starred s
+      JOIN resources r ON s.resource_id = r.id
+      JOIN users u ON r.user_id = u.id
+      WHERE s.user_id = ?
+      ORDER BY s.created_at DESC
+    `;
+
+    const [rows] = await db.query(query, [userId]);
+    return res.status(200).json({
+      success: true,
+      data: rows.map(formatResource)
+    });
+  } catch (error) {
+    console.error('Fetch Starred Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch starred items.' });
+=======
+router.get('/', async (req, res) => {
+  try {
+    const { 
+      listing_type, 
+      category, 
+      search, 
+      urgency, 
+      user_id,
+      status = 'available',
+      page = 1, 
+      limit = 100,
+      sort = 'newest'
+    } = req.query;
+
+    const conditions = [];
+    const params = [];
+
+    // Filter by listing_type (lend, borrow, buy, sell, free)
+    if (listing_type) {
+      conditions.push('LOWER(r.listing_type) = ?');
+      params.push(listing_type.toLowerCase());
+    }
+
+    // Filter by category
+    if (category) {
+      conditions.push('LOWER(r.category) = ?');
+      params.push(category.toLowerCase());
+    }
+
+    // Filter by status
+    if (status !== 'all') {
+      conditions.push('r.status = ?');
+      params.push(status);
+    }
+
+    // Filter by specific user
+    if (user_id) {
+      conditions.push('r.user_id = ?');
+      params.push(Number(user_id));
+    }
+
+    // Filter by urgency
+    if (urgency) {
+      conditions.push('r.urgency = ?');
+      params.push(urgency);
+    }
+
+    // Search query across title, description, location, pickup spot, and poster name
+    if (search && search.trim()) {
+      conditions.push('(r.title LIKE ? OR r.description LIKE ? OR r.location LIKE ? OR r.pickup_spot LIKE ? OR u.name LIKE ?)');
+      const term = `%${search.trim()}%`;
+      params.push(term, term, term, term, term);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Sorting
+    let orderByClause = 'ORDER BY r.created_at DESC';
+    if (sort === 'price_asc') {
+      orderByClause = 'ORDER BY r.price ASC';
+    } else if (sort === 'price_desc') {
+      orderByClause = 'ORDER BY r.price DESC';
+    } else if (sort === 'oldest') {
+      orderByClause = 'ORDER BY r.created_at ASC';
+    } else if (sort === 'urgent') {
+      orderByClause = "ORDER BY CASE r.urgency WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END, r.created_at DESC";
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 100));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM resources r
+      JOIN users u ON r.user_id = u.id
+      ${whereClause}
+    `;
+    const [[{ total }]] = await db.query(countQuery, params);
+
+    // Main data query with User JOIN
+    const dataQuery = `
+      SELECT 
+        r.*,
+        u.name AS user_name,
+        u.phone AS user_phone,
+        u.email AS user_email,
+        u.location AS user_hall,
+        u.dept AS user_dept,
+        u.batch AS user_batch,
+        u.trust_score AS user_trust_score
+      FROM resources r
+      JOIN users u ON r.user_id = u.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT ? OFFSET ?
+    `;
+    const queryParams = [...params, limitNum, offset];
+    const [resources] = await db.query(dataQuery, queryParams);
+
+    const formatted = resources.map(formatResource);
+
+    return res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted,
+      pagination: {
+        total: Number(total) || 0,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil((Number(total) || 0) / limitNum)
+      }
+    });
+
+  } catch (error) {
+    console.error('Fetch Resources Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while fetching campus resources.' });
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
+  }
+});
+
+// ==========================================
+<<<<<<< HEAD
+=======
 // 2. GET USER'S STARRED / BOOKMARKED ITEMS
 // ==========================================
 router.get('/starred', optionalProtect, async (req, res) => {
@@ -76,6 +237,7 @@ router.get('/starred', optionalProtect, async (req, res) => {
 });
 
 // ==========================================
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
 // 3. GET SINGLE RESOURCE BY ID WITH PEER PROFILE
 // ==========================================
 router.get('/:id', async (req, res) => {

@@ -1,8 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+<<<<<<< HEAD
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+=======
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
 
 const db = require('./db');
 const authRoutes = require('./routes/authRoutes');
@@ -20,6 +23,7 @@ const port = parseInt(process.env.PORT, 10) || 5005;
 // ==========================================
 // 1. SECURITY & PARSING MIDDLEWARE
 // ==========================================
+<<<<<<< HEAD
 // Helmet protects your app by setting various HTTP headers
 app.use(helmet({
   crossOriginResourcePolicy: false, // Allows your frontend to fetch local /uploads images
@@ -48,6 +52,34 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+=======
+app.use(cors({
+  origin: true, // Allow frontend during local dev and network preview
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Static file hosting for uploaded photos
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Request performance & audit logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (process.env.NODE_ENV !== 'test') {
+      const statusIcon = res.statusCode >= 500 ? '🔥' : res.statusCode >= 400 ? '⚠️' : '✓';
+      console.log(`[${new Date().toLocaleTimeString()}] ${statusIcon} ${req.method} ${req.originalUrl} ${res.statusCode} (${duration}ms)`);
+    }
+  });
+  next();
+});
+
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
 // ==========================================
 // 2. ROOT & HEALTH DIAGNOSTICS
 // ==========================================

@@ -3,8 +3,11 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+<<<<<<< HEAD
 const uploadController = require('../controllers/uploadController');
 const uploaMiddleware = require('../middleware/uploadMiddleware');
+=======
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -47,6 +50,44 @@ const upload = multer({
  * POST /api/upload
  * Handles single photo upload (field name: 'photo' or 'image').
  */
+<<<<<<< HEAD
 router.post('/', uploaMiddleware.single('photo'), uploadController.uploadPhoto);
+=======
+router.post('/', (req, res) => {
+  const singleUpload = upload.single('photo');
+
+  singleUpload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ success: false, message: 'Image size exceeds maximum 5MB limit.' });
+      }
+      return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file was uploaded.' });
+    }
+
+    const host = req.get('host') || 'localhost:5005';
+    const protocol = req.protocol || 'http';
+    const relativeUrl = `/uploads/${req.file.filename}`;
+    const fullUrl = `${protocol}://${host}${relativeUrl}`;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Photo uploaded successfully!',
+      data: {
+        url: fullUrl,
+        relative_url: relativeUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      }
+    });
+  });
+});
+>>>>>>> 6f8b07b0b32d60c1288f6dd9d0e7a3fb51d4cb5c
 
 module.exports = router;
